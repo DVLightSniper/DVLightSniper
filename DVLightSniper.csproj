@@ -1,0 +1,243 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D8140F6E-9E46-47BA-A5D6-0938CF7753B3}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DVLightSniper</RootNamespace>
+    <AssemblyName>DVLightSniper</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>dv\Mods\DVLightSniper\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>embedded</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>dv\Mods\DVLightSniper\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>dv\Mods\DVLightSniper\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>dv\Mods\DVLightSniper\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>embedded</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony, Version=2.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="DV.Utils, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="RedworkDE.DvTime, Version=1.6.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="System.IO.Compression, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
+    <Reference Include="System.IO.Compression.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
+    <Reference Include="System.Runtime.Serialization, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TerrainModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>dv\DerailValley_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityModManager, Version=0.24.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Main.cs" />
+    <Compile Include="Mod\Components\DutyCycle.cs" />
+    <Compile Include="Mod\Components\MaterialAssignmentComponent.cs" />
+    <Compile Include="Mod\Components\MeshHighlightComponent.cs" />
+    <Compile Include="Mod\Components\LightComponent.cs" />
+    <Compile Include="Mod\Components\MeshComponent.cs" />
+    <Compile Include="Mod\Components\DecorationComponent.cs" />
+    <Compile Include="Mod\Components\DecorationsComponent.cs" />
+    <Compile Include="Mod\Components\SpawnerComponent.cs" />
+    <Compile Include="Mod\Components\TimedMessageComponent.cs" />
+    <Compile Include="Mod\ConsoleCommands.cs" />
+    <Compile Include="Mod\GameObjects\CommsRadioLightSniper.cs" />
+    <Compile Include="Mod\Components\CoronaComponent.cs" />
+    <Compile Include="Mod\GameObjects\Library\AssetMappings.cs" />
+    <Compile Include="Mod\GameObjects\Library\DecorationTemplates.cs" />
+    <Compile Include="Mod\GameObjects\Library\LightTemplates.cs" />
+    <Compile Include="Mod\GameObjects\Library\LightTemplateStorage.cs" />
+    <Compile Include="Mod\GameObjects\Library\Template.cs" />
+    <Compile Include="Mod\GameObjects\Library\Templates.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\FolderPack.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackMeta.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackMetaStorage.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\ZippedPack.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignment.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\DecorationSpawner.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\Pack.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackLoader.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignments.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler_1_92.cs" />
+    <Compile Include="Mod\GameObjects\Library\DecorationTarget.cs" />
+    <Compile Include="Mod\GameObjects\Library\DecorationTemplate.cs" />
+    <Compile Include="Mod\GameObjects\Library\DecorationTemplateStorage.cs" />
+    <Compile Include="Mod\Util\ActionResult.cs" />
+    <Compile Include="Mod\Util\DebugOverlay.cs" />
+    <Compile Include="Mod\GameObjects\Designer.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\CoronaProperties.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Group.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Spawner.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\LightSpawner.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\LightProperties.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\MeshSpawner.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\MeshProperties.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Region.cs" />
+    <Compile Include="Mod\GameObjects\Library\AssetLoader.cs" />
+    <Compile Include="Mod\GameObjects\Library\Helpers.cs" />
+    <Compile Include="Mod\GameObjects\Library\MeshTemplate.cs" />
+    <Compile Include="Mod\GameObjects\Library\LightTemplate.cs" />
+    <Compile Include="Mod\GameObjects\Library\TemplateStorage.cs" />
+    <Compile Include="Mod\LightSniper.cs" />
+    <Compile Include="Mod\Extensions.cs" />
+    <Compile Include="Mod\GameObjects\SpawnerController.cs" />
+    <Compile Include="Mod\Mixins\CommsRadioControllerMixin.cs" />
+    <Compile Include="Mod\Components\SpriteComponent.cs" />
+    <Compile Include="Mod\Settings.cs" />
+    <Compile Include="Mod\Storage\JsonStorage.cs" />
+    <Compile Include="Mod\Time\TimeSource.cs" />
+    <Compile Include="Mod\Util\CommandLineOption.cs" />
+    <Compile Include="Mod\Util\GameObjectPath.cs" />
+    <Compile Include="Mod\Util\Logger.cs" />
+    <Compile Include="Mod\Util\MeshOrientation.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\corona_amber01.png" />
+    <Content Include="Resources\corona_blue01.png" />
+    <Content Include="Resources\corona_green01.png" />
+    <Content Include="Resources\corona_orange01.png" />
+    <Content Include="Resources\corona_red01.png" />
+    <Content Include="Resources\corona_white01.png" />
+    <Content Include="Resources\corona_flare01.png" />
+    <Content Include="Resources\corona_flare02.png" />
+    <Content Include="Resources\corona_flare03.png" />
+    <Content Include="Resources\sprites.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\builtin.assetbundle" />
+    <None Include="Resources\Builtin_Regions_v1.zip" />
+    <None Include="Resources\meshes_lampposts_v1.assetbundle" />
+    <None Include="Info.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\meshes_decoration_lights_v1.assetbundle" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

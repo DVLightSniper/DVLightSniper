@@ -1,0 +1,10 @@
+Build
+Library
+Logs
+Temp
+.vs
+AssetBundles
+bin
+obj
+*.sln
+*.csproj

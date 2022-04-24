@@ -1,0 +1,7 @@
+{
+  "Id": "DVLightSniper",
+  "DisplayName": "LightSniper",
+  "Author": "Mumfrey",
+  "Version": "0.1.0",
+  "EntryMethod": "DVLightSniper.Main.Load"
+}
