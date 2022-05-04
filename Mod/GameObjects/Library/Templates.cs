@@ -106,8 +106,11 @@ namespace DVLightSniper.Mod.GameObjects.Library
             foreach (Pack pack in PackLoader.Packs)
             {
                 string relativePath = Path.Combine(path).RelativeToBaseDir();
-                Stream packTemplates = pack.OpenStream(relativePath);
-                this.Register(TemplateStorage<TTemplate>.ReadTemplates<TStorage>(packTemplates, pack.Name + ":" + relativePath));
+                PackStream packTemplates = pack.OpenStream(relativePath);
+                if (packTemplates != null)
+                {
+                    this.Register(TemplateStorage<TTemplate>.ReadTemplates<TStorage>(packTemplates.Stream, pack.Name + ":" + relativePath));
+                }
             }
 
             this.Update();

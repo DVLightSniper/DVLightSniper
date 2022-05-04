@@ -38,7 +38,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 {
     internal class PackLoader
     {
-        private const string BUILTIN_PACK_NAME = "Builtin_Regions_v1.zip";
+        private static readonly Dictionary<string, string> INTERNAL_PACKS = new Dictionary<string, string>()
+        {
+            { "default", "Default_Pack_1.0.zip" },
+            { "level_crossings", "Level_Crossings_Pack_1.0.zip" }
+        };
 
         internal static string Dir { get; }
 
@@ -60,21 +64,28 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             Directory.CreateDirectory(PackLoader.Dir);
         }
 
-        internal static bool UnpackBuiltin()
+        internal static bool Unpack(string packId)
         {
-            string fileName = Path.Combine(PackLoader.Dir, PackLoader.BUILTIN_PACK_NAME);
-            if (File.Exists(fileName))
+            packId = packId.ToLowerInvariant();
+            if (!PackLoader.INTERNAL_PACKS.ContainsKey(packId))
+            {
+                return false;
+            }
+
+            string packFileName = PackLoader.INTERNAL_PACKS[packId];
+            string outFileName = Path.Combine(PackLoader.Dir, packFileName);
+            if (File.Exists(outFileName))
             {
                 return false;
             }
 
             try
             {
-                object data = Resources.ResourceManager.GetObject(BUILTIN_PACK_NAME, Resources.Culture);
+                object data = Resources.ResourceManager.GetObject(packFileName, Resources.Culture);
                 if (data != null)
                 {
-                    File.WriteAllBytes(fileName, (byte[])data);
-                    PackLoader.packs.Add(new ZippedPack(fileName, PackLoader.metaStorage));
+                    File.WriteAllBytes(outFileName, (byte[])data);
+                    PackLoader.packs.Add(new ZippedPack(outFileName, PackLoader.metaStorage));
                     return true;
                 }
             }
@@ -84,6 +95,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             }
 
             return false;
+        }
+
+        internal static Pack Get(string packId)
+        {
+            return PackLoader.Packs.FirstOrDefault(pack => string.Equals(pack.Id, packId, StringComparison.InvariantCultureIgnoreCase));
         }
 
         private static List<Pack> Discover()
@@ -158,8 +174,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             return discovered.Values.ToList();
         }
 
-
-        internal IEnumerable<string> Find(string path, string extension = null)
+        internal static IEnumerable<string> Find(string path, string extension = null)
         {
             List<string> results = new List<string>();
             foreach (Pack pack in PackLoader.Packs)
@@ -169,17 +184,22 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             return results.Distinct();
         }
 
-        internal static Stream OpenStream(string path)
+        internal static DateTime GetLastWriteTime(string path)
+        {
+            return PackLoader.Packs.Select(pack => pack.GetLastWriteTime(path)).FirstOrDefault(date => date != DateTime.MinValue);
+        }
+
+        internal static PackStream OpenStream(string path)
         {
             return PackLoader.Packs.Select(pack => pack.OpenStream(path)).FirstOrDefault(stream => stream != null);
         }
 
-        internal static byte[] OpenResource(string path)
+        internal static PackResource OpenResource(string path)
         {
             return PackLoader.Packs.Select(pack => pack.OpenResource(path)).FirstOrDefault(resource => resource != null);
         }
 
-        internal static JObject OpenJson(string path)
+        internal static PackJson OpenJson(string path)
         {
             return PackLoader.Packs.Select(pack => pack.OpenJson(path)).FirstOrDefault(json => json != null);
         }

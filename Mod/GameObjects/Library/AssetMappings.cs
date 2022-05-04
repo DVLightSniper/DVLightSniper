@@ -67,8 +67,9 @@ namespace DVLightSniper.Mod.GameObjects.Library
             // Add mappings for version 1 if saved version is lower
             if (this.version < 1)
             {
-                this["meshes_decoration_lights.assetbundle"] = "meshes_decoration_lights_v1.assetbundle";
-                this["meshes_lampposts.assetbundle"] = "meshes_lampposts_v1.assetbundle";
+                this["meshes_decoration_lights.assetbundle"] = "meshes_decoration_lights_1.0.assetbundle";
+                this["meshes_lampposts.assetbundle"] = "meshes_lampposts_1.0.assetbundle";
+                this["meshes_levelcrossings.assetbundle"] = "meshes_levelcrossings_1.0.assetbundle";
                 this.version = 1;
                 saveRequired = true;
             }
@@ -88,7 +89,13 @@ namespace DVLightSniper.Mod.GameObjects.Library
             set
             {
                 this.mappings[assetBundleName] = value;
+                this.Save();
             }
+        }
+
+        internal bool Contains(string assetBundleName)
+        {
+            return this.mappings.ContainsKey(assetBundleName);
         }
     }
 }

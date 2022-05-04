@@ -64,6 +64,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         internal override IEnumerable<string> Find(string path, string extension = null)
         {
+            if (extension != null && extension.StartsWith("*"))
+            {
+                extension = extension.Substring(1);
+            }
+
             path = ZippedPack.SanitiseZipPath(path);
             List<string> results = new List<string>();
             foreach (ZipArchiveEntry entry in this.zip.Entries)
@@ -76,11 +81,29 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             return results;
         }
 
-        internal override Stream OpenStream(string path)
+        internal override DateTime GetLastWriteTime(string path)
         {
             try
             {
-                return this.zip.GetEntry(ZippedPack.SanitiseZipPath(path))?.Open();
+                return this.zip.GetEntry(ZippedPack.SanitiseZipPath(path))?.LastWriteTime.DateTime ?? DateTime.MinValue;
+            }
+            catch (Exception e)
+            {
+                LightSniper.Logger.Debug(e);
+                return DateTime.MinValue;
+            }
+        }
+
+        internal override PackStream OpenStream(string path)
+        {
+            try
+            {
+                ZipArchiveEntry entry = this.zip.GetEntry(ZippedPack.SanitiseZipPath(path));
+                if (entry == null)
+                {
+                    return null;
+                }
+                return new PackStream(this, path.ConformSlashes(), entry.LastWriteTime.DateTime, entry.Open());
             }
             catch (Exception e)
             {
@@ -89,7 +112,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             }
         }
 
-        internal override byte[] OpenResource(string path)
+        internal override PackResource OpenResource(string path)
         {
             try
             {
@@ -104,7 +127,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 {
                     entry.Open().CopyTo(ms);
                 }
-                return buffer;
+                return new PackResource(this, path.ConformSlashes(), entry.LastWriteTime.DateTime, buffer);
             }
             catch (Exception e)
             {

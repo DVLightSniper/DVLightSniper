@@ -46,7 +46,7 @@ namespace DVLightSniper.Mod.Time
 
             if (TimeSource.GetCurrentTime is null)
             {
-                TimeSource.GetCurrentTime = () => DateTime.Now;
+                TimeSource.GetCurrentTime = () => DateTime.UtcNow;
             }
         }
 

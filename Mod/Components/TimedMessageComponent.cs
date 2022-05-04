@@ -57,7 +57,7 @@ namespace DVLightSniper.Mod.Components
         [UsedImplicitly]
         private void Update()
         {
-            if (this.displayed && (DateTime.Now - this.messageTime).TotalSeconds > 3)
+            if (this.displayed && (DateTime.UtcNow - this.messageTime).TotalSeconds > 3)
             {
                 this.text.SetText("");
                 this.displayed = false;
@@ -74,7 +74,7 @@ namespace DVLightSniper.Mod.Components
             this.text.SetText(text ?? "");
             this.text.color = colour;
             this.displayed = text != null;
-            this.messageTime = DateTime.Now;
+            this.messageTime = DateTime.UtcNow;
         }
     }
 }

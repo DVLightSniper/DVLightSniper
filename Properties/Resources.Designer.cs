@@ -73,16 +73,6 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] Builtin_Regions_v1_zip {
-            get {
-                object obj = ResourceManager.GetObject("Builtin_Regions_v1.zip", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
         internal static byte[] corona_amber01_png {
             get {
                 object obj = ResourceManager.GetObject("corona_amber01.png", resourceCulture);
@@ -173,9 +163,9 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_decoration_lights_v1_assetbundle {
+        internal static byte[] Default_Pack_1_0_zip {
             get {
-                object obj = ResourceManager.GetObject("meshes_decoration_lights_v1.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("Default_Pack_1.0.zip", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -183,9 +173,39 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_lampposts_v1_assetbundle {
+        internal static byte[] Level_Crossings_Pack_1_0_zip {
             get {
-                object obj = ResourceManager.GetObject("meshes_lampposts_v1.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("Level_Crossings_Pack_1.0.zip", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] meshes_decoration_lights_1_0_assetbundle {
+            get {
+                object obj = ResourceManager.GetObject("meshes_decoration_lights_1.0.assetbundle", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] meshes_lampposts_1_0_assetbundle {
+            get {
+                object obj = ResourceManager.GetObject("meshes_lampposts_1.0.assetbundle", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] meshes_levelcrossings_1_0_assetbundle {
+            get {
+                object obj = ResourceManager.GetObject("meshes_levelcrossings_1.0.assetbundle", resourceCulture);
                 return ((byte[])(obj));
             }
         }

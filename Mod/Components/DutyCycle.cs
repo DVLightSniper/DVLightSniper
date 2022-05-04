@@ -112,10 +112,10 @@ namespace DVLightSniper.Mod.Components
                     }
 
                     float flashTime = 1.0F / this.Frequency;
-                    if ((DateTime.Now - this.lastFlashTime).TotalSeconds > flashTime)
+                    if ((DateTime.UtcNow - this.lastFlashTime).TotalSeconds > flashTime)
                     {
                         this.flashState = !this.flashState;
-                        this.lastFlashTime = DateTime.Now;
+                        this.lastFlashTime = DateTime.UtcNow;
                     }
                     return this.flashState;
                 }
@@ -245,17 +245,17 @@ namespace DVLightSniper.Mod.Components
 
             protected override bool ComputeState()
             {
-                if (this.mark == DateTime.MinValue || (DateTime.Now - this.mark).TotalSeconds > (this.TotalTime.TotalSeconds * 10))
+                if (this.mark == DateTime.MinValue || (DateTime.UtcNow - this.mark).TotalSeconds > (this.TotalTime.TotalSeconds * 10))
                 {
-                    this.mark = DateTime.Now;
+                    this.mark = DateTime.UtcNow;
                     return true;
                 }
 
-                TimeSpan timeSlice = (DateTime.Now - this.mark);
+                TimeSpan timeSlice = (DateTime.UtcNow - this.mark);
                 while (timeSlice > this.TotalTime)
                 {
                     this.mark += this.TotalTime;
-                    timeSlice = (DateTime.Now - this.mark);
+                    timeSlice = (DateTime.UtcNow - this.mark);
                 }
                 long cursor = (long)timeSlice.TotalMilliseconds;
                 bool state = true;
@@ -307,16 +307,16 @@ namespace DVLightSniper.Mod.Components
             private static int MIN_TIME = 25;
             private static int MAX_TIME = 500;
 
-            private DateTime nextTransition = DateTime.Now;
+            private DateTime nextTransition = DateTime.UtcNow;
 
             private bool state = false;
 
             protected override bool ComputeState()
             {
-                if (DateTime.Now > this.nextTransition)
+                if (DateTime.UtcNow > this.nextTransition)
                 {
                     this.state = !this.state;
-                    this.nextTransition = DateTime.Now.AddMilliseconds(Random.RANDOM_SOURCE.Next(Random.MIN_TIME, Random.MAX_TIME));
+                    this.nextTransition = DateTime.UtcNow.AddMilliseconds(Random.RANDOM_SOURCE.Next(Random.MIN_TIME, Random.MAX_TIME));
                 }
 
                 return this.state;

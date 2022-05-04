@@ -28,9 +28,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization;
 
 using DVLightSniper.Mod.Components;
+using DVLightSniper.Mod.Components.Prefabs;
 
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
@@ -47,11 +49,41 @@ using UnityEngine;
 
 namespace DVLightSniper.Mod.GameObjects.Spawners
 {
+    /// <summary>
+    /// A spawner which spawns a mesh in the world, well strictly speaking any prefab which can be
+    /// stored in an asset bundle. The spawned prefab can be positioned and rotated but not scaled.
+    /// Lights defined in the template are created as separate spawners parented to the spawned mesh
+    /// rather than being managed by this spawner, this is so they can be independently designed as
+    /// required by the user.
+    /// 
+    /// Light spawners parented to this mesh spawner register their existence with us so that the
+    /// duty cycle can be propagated to the mesh. Any child objects named "Source" in the prefab
+    /// will be enabled/disabled based on the state of the master light, which is the first light to
+    /// be registered. Propagation of the duty cycle is managed by attaching MeshComponent to the
+    /// spawned object.
+    /// 
+    /// We also attach any components decorated with matching PrefabBehaviourAttribute to the
+    /// spawned object because we can't store code in the assetbundle and putting the code in a
+    /// separate assembly is a bit of a faff.
+    /// </summary>
     [DataContract]
     internal class MeshSpawner : Spawner
     {
+        /// <summary>
+        /// Number of times to attempt to load the asset before giving up
+        /// </summary>
+        private const int MAX_LOAD_ATTEMPTS = 4;
+
+        /// <summary>
+        /// Number of seconds to wait between load attempts when loading fails
+        /// </summary>
+        private const int RELOAD_ATTEMPT_TIME_SECONDS = 60;
+
         private string name;
 
+        /// <summary>
+        /// The name of this mesh
+        /// </summary>
         internal override string Name
         {
             get
@@ -60,9 +92,15 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Stored properties for the mesh
+        /// </summary>
         [DataMember(Name = "properties", Order = 4)]
         private MeshProperties properties;
 
+        /// <summary>
+        /// Mesh properties
+        /// </summary>
         internal MeshProperties Properties
         {
             get
@@ -78,15 +116,52 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// All light spawners which have us defined as a parent
+        /// </summary>
         private readonly IList<LightSpawner> childLights = new List<LightSpawner>();
 
+        /// <summary>
+        /// The first light spawner which registered as a child
+        /// </summary>
         private LightSpawner masterLight;
 
-        internal bool On { get { return this.masterLight == null || this.masterLight.On; } }
+        /// <summary>
+        /// Duty cycle state propagated from the master light
+        /// </summary>
+        internal bool On { get { return this.masterLight != null && this.masterLight.On; } }
 
+        private bool inhibit;
+
+        /// <summary>
+        /// Force the mesh state to "off"
+        /// </summary>
+        internal bool Inhibit
+        {
+            get
+            {
+                return this.inhibit;
+            }
+            set
+            {
+                foreach (LightSpawner childLight in this.childLights)
+                {
+                    childLight.Inhibit = value;
+                }
+
+                this.inhibit = value;
+            }
+        }
+
+        /// <summary>
+        /// Keep track of failed asset loads so we can retry a few times and give up if necessary
+        /// </summary>
         private DateTime lastLoadAttempt;
         private int failedLoadAttempts;
 
+        /// <summary>
+        /// Flag which indicates we tried to load the asset but were unsuccessful
+        /// </summary>
         internal bool MissingResource { get; private set; }
 
         [JsonConstructor]
@@ -101,27 +176,29 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             ticket.TickedMesh(visible);
         }
 
-        protected override void Spawn(UpdateTicket ticket, GameObject parent)
+        /// <summary>
+        /// The spawner successfully located the parent transform, attempt to spawn the mesh
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <param name="parent"></param>
+        protected override bool Spawn(UpdateTicket ticket, GameObject parent)
         {
-            if (this.MissingResource)
+            if (this.MissingResource && (this.failedLoadAttempts > MeshSpawner.MAX_LOAD_ATTEMPTS || (DateTime.UtcNow - this.lastLoadAttempt).TotalSeconds < MeshSpawner.RELOAD_ATTEMPT_TIME_SECONDS))
             {
-                if (this.failedLoadAttempts > 4 || (DateTime.Now - this.lastLoadAttempt).TotalSeconds < 60)
-                {
-                    return;
-                }
+                return false;
             }
 
             GameObject meshHolder = this.GameObject;
             if (meshHolder == null)
             {
-                this.lastLoadAttempt = DateTime.Now;
+                this.lastLoadAttempt = DateTime.UtcNow;
 
                 GameObject meshTemplate = AssetLoader.Meshes.Load<GameObject>(this.Properties.AssetBundleName, this.Properties.AssetName);
                 if (meshTemplate == null)
                 {
                     this.MissingResource = true;
                     this.failedLoadAttempts++;
-                    return;
+                    return false;
                 }
 
                 this.MissingResource = false;
@@ -146,8 +223,14 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.Configure(meshHolder);
             this.Region.Controller.NotifySpawned(this);
             ticket.Mark(1);
+            return true;
         }
 
+        /// <summary>
+        /// Apply the specified light properties to all child lights of this mesh, this happens when
+        /// a user clicks a mesh with the paint tool
+        /// </summary>
+        /// <param name="lightProperties"></param>
         internal void Paint(LightProperties lightProperties)
         {
             foreach (LightSpawner childLight in this.childLights)
@@ -166,6 +249,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Apply configured properties to the mesh
+        /// </summary>
+        /// <param name="meshHolder"></param>
         internal override void Configure(GameObject meshHolder)
         {
             if (meshHolder == null)
@@ -182,6 +269,15 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 meshNotifier.OnDestroyed += this.OnMeshDestroyed;
             }
             meshNotifier.Spawner = this;
+
+            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
+            {
+                PrefabBehaviourAttribute prefabBehaviour = type.GetCustomAttribute<PrefabBehaviourAttribute>();
+                if (prefabBehaviour != null && prefabBehaviour.Matches(this.Properties))
+                {
+                    meshHolder.AddComponent(type);
+                }
+            }
         }
 
         private void OnMeshDestroyed(MeshComponent sprite)
@@ -193,6 +289,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.SetGameObject(null);
         }
 
+        /// <summary>
+        /// Callback from a light spawner to register itself as a child
+        /// </summary>
+        /// <param name="light"></param>
         internal void Accept(LightSpawner light)
         {
             if (this.childLights.Contains(light))
@@ -202,12 +302,17 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
             this.childLights.Add(light);
             light.OnDeleted += this.Forget;
+            light.Inhibit = this.inhibit;
             if (this.masterLight == null || this.masterLight.Deleted)
             {
                 this.masterLight = light;
             }
         }
 
+        /// <summary>
+        /// Callback from a light spawner to unregister itself as a child
+        /// </summary>
+        /// <param name="spawner"></param>
         private void Forget(Spawner spawner)
         {
             if (this.Deleted)
@@ -215,10 +320,15 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 return;
             }
 
-            this.childLights.Remove(spawner as LightSpawner);
-            if (this.masterLight == spawner)
+            if (spawner is LightSpawner lightSpawner)
             {
-                this.masterLight = this.childLights.Count > 0 ? this.childLights[0] : null;
+                this.childLights.Remove(lightSpawner);
+                lightSpawner.Inhibit = false;
+
+                if (this.masterLight == spawner)
+                {
+                    this.masterLight = this.childLights.Count > 0 ? this.childLights[0] : null;
+                }
             }
         }
 

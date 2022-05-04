@@ -88,6 +88,13 @@ namespace DVLightSniper.Mod
             return meshComponent == null || (allowedMeshGroup != null && meshComponent.Spawner.Group.Name == allowedMeshGroup);
         }
 
+        public static float DistanceSq2d(this Vector3 position, Vector3 other)
+        {
+            float xDelta = position.x - other.x;
+            float zDelta = position.z - other.z;
+            return xDelta * xDelta + zDelta * zDelta;
+        }
+
         /// <summary>
         /// Return the position of the supplied (offset) transform in "world" (map) coordinates by
         /// subtracting the current world move from the position.
@@ -230,6 +237,11 @@ namespace DVLightSniper.Mod
         public static string RelativeToDir(this FileInfo fileInfo, string baseDir)
         {
             return fileInfo?.FullName.RelativeToDir(baseDir);
+        }
+
+        public static string ConformSlashes(this string path)
+        {
+            return path?.Replace('/', '\\');
         }
     }
 }

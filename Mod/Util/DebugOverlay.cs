@@ -66,7 +66,7 @@ namespace DVLightSniper.Mod.Util
                 {
                     get
                     {
-                        return (DateTime.Now - this.createdTime).TotalSeconds > this.lifeSpan;
+                        return (DateTime.UtcNow - this.createdTime).TotalSeconds > this.lifeSpan;
                     }
                 }
 
@@ -79,7 +79,7 @@ namespace DVLightSniper.Mod.Util
                     this.lifeSpan = lifeSpan;
                     this.Text = text;
                     this.Colour = colour;
-                    this.createdTime = DateTime.Now;
+                    this.createdTime = DateTime.UtcNow;
                 }
             }
 
@@ -115,6 +115,16 @@ namespace DVLightSniper.Mod.Util
             /// Whether this section is enabled (visible)
             /// </summary>
             internal bool Enabled { get; set; }
+
+            /// <summary>
+            /// Displays this section as a "summary" (bar) instead of individual messages
+            /// </summary>
+            internal bool Summary { get; set; }
+
+            /// <summary>
+            /// Enables rich text when rendering this section
+            /// </summary>
+            internal bool RichText { get; set; }
 
             /// <summary>
             /// Whether messages added to this section via AddMessage should also be emitted to the
@@ -213,6 +223,12 @@ namespace DVLightSniper.Mod.Util
                     if (this.messages != null)
                     {
                         this.messages.RemoveAll(message => message.IsExpired);
+
+                        if (this.Summary)
+                        {
+                            return new[] { new Message(new String('\u25A0', this.messages.Count), this.Colour) };
+                        }
+
                         return this.messages;
                     }
 
@@ -324,10 +340,13 @@ namespace DVLightSniper.Mod.Util
 
         private const int FONT_SIZE = 12;
         private static Font font;
+        private static Texture2D underlay;
         private static GUIStyle sectionStyle, markerStyle;
 
         private static float glyphWidth = 8.0F;
         private static float glyphHeight = 10.0F;
+
+        private float yMax;
 
         /// <summary>
         /// ctor
@@ -412,6 +431,11 @@ namespace DVLightSniper.Mod.Util
                 DebugOverlay.font = Font.CreateDynamicFontFromOSFont("Consolas", DebugOverlay.FONT_SIZE);
                 DebugOverlay.font.RequestCharactersInTexture("H");
 
+                DebugOverlay.underlay = new Texture2D(1, 1);
+                DebugOverlay.underlay.SetPixel(0, 0, new Color(0, 0, 0, 0.66F));
+                DebugOverlay.underlay.wrapMode = TextureWrapMode.Repeat;
+                DebugOverlay.underlay.Apply(false);
+
                 DebugOverlay.sectionStyle = new GUIStyle
                 {
                     fontStyle = FontStyle.Normal,
@@ -427,6 +451,8 @@ namespace DVLightSniper.Mod.Util
                 DebugOverlay.font.GetCharacterInfo('H', out CharacterInfo ci, DebugOverlay.sectionStyle.fontSize, DebugOverlay.sectionStyle.fontStyle);
                 DebugOverlay.glyphWidth = ci.glyphWidth;
                 DebugOverlay.glyphHeight = ci.glyphHeight;
+
+                this.yMax = 24.0F + DebugOverlay.glyphHeight + 3.0F + 24.0F;
             }
         }
 
@@ -450,6 +476,11 @@ namespace DVLightSniper.Mod.Util
 
         private void DrawSections()
         {
+            if (LoadingScreenManager.IsLoading)
+            {
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, this.yMax), DebugOverlay.underlay);
+            }
+
             float labelWidth = 0.0F;
             foreach (Section line in DebugOverlay.sections)
             {
@@ -470,6 +501,8 @@ namespace DVLightSniper.Mod.Util
                 GUI.Label(new Rect(24.0F, yPos, 100, 40), section.Label, DebugOverlay.sectionStyle);
                 bool isEmpty = true;
 
+                DebugOverlay.sectionStyle.richText = section.RichText;
+
                 foreach (Section.Message message in section.Messages)
                 {
                     foreach (string line in message.Text.Split('\n'))
@@ -489,6 +522,9 @@ namespace DVLightSniper.Mod.Util
                     yPos += ySpacing;
                 }
             }
+
+            DebugOverlay.sectionStyle.richText = false;
+            this.yMax = yPos + 24.0F;
         }
 
         private void DrawMarkers()

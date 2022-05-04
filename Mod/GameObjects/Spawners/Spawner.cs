@@ -24,22 +24,25 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization;
-using System.Windows.Forms;
 
-using DVLightSniper.Mod.Components;
 using DVLightSniper.Mod.GameObjects.Spawners.Upgrade;
 using DVLightSniper.Mod.Util;
 
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
 using UpdateTicket = DVLightSniper.Mod.GameObjects.SpawnerController.UpdateTicket;
+using TimingSection = DVLightSniper.Mod.GameObjects.SpawnerController.TimingSection;
+using TimingLevel = DVLightSniper.Mod.GameObjects.SpawnerController.TimingLevel;
 
 using UnityEngine;
+
+using Random = System.Random;
 
 namespace DVLightSniper.Mod.GameObjects.Spawners
 {
@@ -85,6 +88,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
     internal abstract class Spawner
     {
         /// <summary>
+        /// Random source
+        /// </summary>
+        private static readonly Random RANDOM_SOURCE = new Random();
+
+        /// <summary>
         /// Update rate for unspawned objects which have not discovered their parent transforms yet
         /// </summary>
         private const int UPDATE_RATE = 5000; // ms
@@ -108,8 +116,18 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
             set
             {
+                if (this.group != null)
+                {
+                    this.group.EnabledChanged -= this.OnGroupToggled;
+                }
+
                 this.group = value;
                 this.ParentPath = this.ParentPath; // reapply parent path to inline group reference
+
+                if (this.group != null)
+                {
+                    this.group.EnabledChanged += this.OnGroupToggled;
+                }
             }
         }
 
@@ -136,8 +154,17 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         [DataMember(Name = "parent", Order = 0)]
         private string parentPathRaw;
 
+        /// <summary>
+        /// Computed parent path with tokens replaced, cached so we don't have to recompute it all
+        /// the time
+        /// </summary>
         private string parentPathReal;
 
+        /// <summary>
+        /// The transform path to the parent object for this spawner, internally the name of the
+        /// group is replaced with a token so that the group file can be safely renamed and parent
+        /// relationships will still work.
+        /// </summary>
         internal string ParentPath
         {
             get
@@ -218,6 +245,9 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         /// </summary>
         internal bool Dirty { get; set; }
 
+        /// <summary>
+        /// Hash of the parent location, used to verify the parent has been identified correctly
+        /// </summary>
         internal string ParentHash
         {
             get
@@ -231,6 +261,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Hash of the spawned object location, not currently used but intended to be used for
+        /// upgrade handling since the original object location can be extracted from this field
+        /// </summary>
         internal string TransformHash
         {
             get
@@ -292,7 +326,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             private set
             {
                 this.gameObject = value;
-                this.lastCheck = DateTime.Now;
+                this.rateLimit.Restart();
                 if (value != null)
                 {
                     this.TransformHash = value.transform.AsWorldCoordinate().AsHex(true);
@@ -360,18 +394,57 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         /// Used to keep track of the last time the object was updated while inactive, in order to
         /// honour the rate-limiting contract
         /// </summary>
-        private DateTime lastCheck;
+        private readonly Stopwatch rateLimit = new Stopwatch();
+
+        /// <summary>
+        /// Culling is one of the more expensive operations when a spawner is active, so we avoid it
+        /// where possible. We already inhibit culling checks when the player is not moving, but
+        /// when spawners are far beyond the culling radius we also update their culling state less
+        /// frequently based on how far away they are. This is particularly good at reducing
+        /// overhead while the player is moving, giving back on average about 30-35% of time at the
+        /// default radius, and as much as 50% or more for smaller radii. This stopwatch keeps track
+        /// of the inhibit time when spawners are far away, and works with cullCheckInhibitFor to
+        /// impement cull check inhibiting.
+        /// </summary>
+        private readonly Stopwatch cullCheckInhibitTimer = new Stopwatch();
+
+        /// <summary>
+        /// Number of milliseconds to inhibit cull checking for, see cullCheckInhibitTimer
+        /// </summary>
+        private int cullCheckInhibitFor = 0;
+
+        /// <summary>
+        /// Base number of milliseconds to inhibit checking for, computed as a random spread so that
+        /// inhibited spawners are randomly ticked to reduce spikes
+        /// </summary>
+        private readonly int cullCheckInhibitSpread;
 
         /// <summary>
         /// Debug overlay marker
         /// </summary>
         private DebugOverlay.Marker marker;
 
+        private readonly TimingSection tickTimings, spawnTimings, cullTimings, updateTimings;
+
         protected Spawner(string parentPath, Vector3 localPosition, Quaternion rotation)
         {
             this.ParentPath = parentPath;
             this.LocalPosition = localPosition;
             this.Rotation = rotation;
+            this.rateLimit.Start();
+
+            this.cullCheckInhibitSpread = Spawner.RANDOM_SOURCE.Next(230, 270);
+
+            string timingSectionPrefix = this.GetType().Name.ToLowerInvariant().Substring(0, this.GetType().Name.IndexOf("Spawner", StringComparison.Ordinal));
+            this.tickTimings   = TimingSection.Get(timingSectionPrefix + ".tick", TimingLevel.Spawner);
+            this.spawnTimings  = TimingSection.Get(timingSectionPrefix + ".spawn", TimingLevel.Spawner);
+            this.cullTimings   = TimingSection.Get(timingSectionPrefix + ".cull", TimingLevel.SpawnerDetailed);
+            this.updateTimings = TimingSection.Get(timingSectionPrefix + ".update", TimingLevel.SpawnerDetailed);
+        }
+
+        private void OnGroupToggled(bool enabled)
+        {
+            this.rateLimit.Restart();
         }
 
         /// <summary>
@@ -410,11 +483,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         /// Update for global objects which is called even when outside ticking radius for the
         /// parent group
         /// </summary>
-        internal void GlobalUpdate()
+        internal void GlobalUpdate(UpdateTicket ticket)
         {
             if (this.Active)
             {
-                this.UpdateCulling();
+                this.UpdateCulling(ticket);
             }
         }
 
@@ -455,19 +528,22 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 this.marker.Enabled = false;
             }
 
-            var sinceLastUpdate = (DateTime.Now - this.lastCheck).TotalMilliseconds;
             if (this.Active)
             {
+                this.tickTimings.Start();
                 this.ActiveTick(ticket);
+                this.tickTimings.End();
             }
-            else if (!this.Active && (this.ForceUpdate || sinceLastUpdate > Spawner.UPDATE_RATE && ticket.HasUpdatesRemaining))
+            else if (!this.Active && (this.ForceUpdate || this.rateLimit.ElapsedMilliseconds > Spawner.UPDATE_RATE && ticket.HasUpdatesRemaining))
             {
+                this.spawnTimings.Start();
                 this.SpawnerTick(ticket);
+                this.spawnTimings.End();
             }
-            else if (sinceLastUpdate > 300000 && sinceLastUpdate < 86400000)
-            {
-                LightSniper.Logger.Warn("{0}({1}) is update starved, waited {2}ms without update", this.GetType().Name, this.Name, sinceLastUpdate);
-            }
+            // else if (this.rateLimit.ElapsedMilliseconds > 300000)
+            // {
+            //     LightSniper.Logger.Warn("{0}({1}) is update starved, waited {2}ms without update", this.GetType().Name, this.Name, this.rateLimit.ElapsedMilliseconds);
+            // }
         }
 
         private void ActiveTick(UpdateTicket ticket)
@@ -483,15 +559,25 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 this.marker.Position = this.Transform.position;
             }
 
-            bool visible = this.UpdateCulling();
+            if (LoadingScreenManager.IsLoading || FastTravelController.IsFastTravelling)
+            {
+                return;
+            }
+
+            this.cullTimings.Start();
+            bool visible = this.UpdateCulling(ticket);
+            this.cullTimings.End();
+
+            this.updateTimings.Start();
             this.Tick(ticket, visible);
+            this.updateTimings.End();
         }
 
         protected abstract void Tick(UpdateTicket ticket, bool visible);
 
         private void SpawnerTick(UpdateTicket ticket)
         {
-            this.lastCheck = DateTime.Now;
+            this.rateLimit.Restart();
             this.ForceUpdate = false;
 
             for (; this.UpgradeHandler != null; this.UpgradeHandler = this.UpgradeHandler.Next)
@@ -509,6 +595,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                     // parent is null then something went wrong so just bug out now.
                     return;
                 }
+
+                ticket.Mark(1);
 
                 if (LoadingScreenManager.IsLoading || FastTravelController.IsFastTravelling)
                 {
@@ -562,7 +650,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 return;
             }
 
-            this.Spawn(ticket, parent);
+            if (this.Spawn(ticket, parent) && !LoadingScreenManager.IsLoading)
+            {
+                this.UpdateCulling(ticket, true);
+            }
         }
 
         private bool CheckHash(GameObject parent)
@@ -587,26 +678,48 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             return true;
         }
 
-        protected abstract void Spawn(UpdateTicket ticket, GameObject parent);
+        protected abstract bool Spawn(UpdateTicket ticket, GameObject parent);
 
-        private bool UpdateCulling()
+        private bool UpdateCulling(UpdateTicket ticket, bool spawnCheck = false)
         {
-            float distanceSq = (this.Transform.position - PlayerManager.PlayerTransform.position).sqrMagnitude;
+            if (this.cullCheckInhibitFor > 0)
+            {
+                if (this.cullCheckInhibitTimer.ElapsedMilliseconds < this.cullCheckInhibitFor)
+                {
+                    return !this.Culled;
+                }
+            }
+            else if (!ticket.HasMoved)
+            {
+                return !this.Culled;
+            }
+
+            this.cullCheckInhibitFor = 0;
+            this.cullCheckInhibitTimer.Reset();
+
+            if (SpawnerController.CullEverything)
+            {
+                this.PreCullFade = 0.0F;
+                this.SetCulled(true);
+                return false;
+            }
+
+            float distanceSq = this.Transform.position.DistanceSq2d(PlayerManager.PlayerTransform.position);
 
             if (this.CullDistance > 0 && distanceSq > this.CullDistanceSq)
             {
                 if (this.GameObject != null)
                 {
-                    LightSniper.Logger.Debug("+++> Manually culling {0} because distance exceeds cull radius of {1}", this.Name, this.CullDistance);
+                    LightSniper.Logger.Trace("+++> Manually culling {0} because distance exceeds cull radius of {1}", this.Name, this.CullDistance);
+
+                    if (spawnCheck)
+                    {
+                        LightSniper.Logger.Warn("Attempted to cull {0} immediately after spawn, this should not happen and indicates something is wrong.", this.Name);
+                        return true;
+                    }
+
                     Object.Destroy(this.GameObject);
                 }
-                return false;
-            }
-
-            if (CommandLineOption.DEBUG_TOGGLE_CAPS && Control.IsKeyLocked(Keys.CapsLock))
-            {
-                this.PreCullFade = 0.0F;
-                this.SetCulled(true);
                 return false;
             }
 
@@ -621,6 +734,22 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             {
                 this.PreCullFade = 0.0F;
                 this.SetCulled(true);
+
+                int cullingRadius = LightSniper.Settings.DistanceCullingRadius;
+
+                int inhibitRadius1 = Math.Max(200, (int)(cullingRadius * 1.2)); // at 20% out or 200m, whichever is largest, inhibit the culling check for around 250ms (randomly spread)
+                if (distanceSq > (inhibitRadius1 * inhibitRadius1))
+                {
+                    this.cullCheckInhibitFor = this.cullCheckInhibitSpread;
+
+                    int inhibitRadius2 = Math.Max(400, (int)(cullingRadius * 1.4)); // at 50% out or 400m, whichever is largest, inhibit the check for around 500ms (randomly spread)
+                    if (distanceSq > (inhibitRadius2 * inhibitRadius2))
+                    {
+                        this.cullCheckInhibitFor *= 2;
+                    }
+
+                    this.cullCheckInhibitTimer.Restart();
+                }
                 return false;
             }
 

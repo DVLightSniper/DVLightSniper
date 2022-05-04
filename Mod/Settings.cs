@@ -117,6 +117,9 @@ namespace DVLightSniper.Mod
         // Internal flag, tracks whether we are showing the debug markers
         public bool showDebugMarkers = false;
 
+        // Internal value, sets which debug messages are visible
+        public int debugLevel = 2;
+
         // Current group being edited
         public string currentGroup = Region.DEFAULT_GROUP_NAME;
 
@@ -127,6 +130,10 @@ namespace DVLightSniper.Mod
         // Flag which allows LightSniper to load on later versions of the game than the one it is
         // intended for. This is a "use at your own risk" flag.
         public bool forceLoadOnVersionMismatch = false;
+
+        // Remove empty region dirs when shutting down, useful before saving packs to avoid empty
+        // dirs in the zip file
+        public bool cleanUpOnExit = false;
 
         internal bool ShowDebugMarkers
         {
@@ -190,6 +197,28 @@ namespace DVLightSniper.Mod
             }
         }
 
+        internal long AllowedTimeSlice
+        {
+            get
+            {
+                if (LoadingScreenManager.IsLoading || FastTravelController.IsFastTravelling)
+                {
+                    return 250;
+                }
+
+                switch (this.UpdateStrategy)
+                {
+                    case UpdateStrategy.Lazy: return 25;
+                    case UpdateStrategy.Ambitious: return 25;
+                    case UpdateStrategy.Aggressive: return 50;
+                    case UpdateStrategy.Psychotic: return 100;
+                    case UpdateStrategy.NukeItFromOrbit: return 250;
+                }
+
+                return 25;
+            }
+        }
+
         internal int BackoffTimeMs
         {
             get
@@ -224,6 +253,11 @@ namespace DVLightSniper.Mod
         {
             get
             {
+                if (LoadingScreenManager.IsLoading || FastTravelController.IsFastTravelling)
+                {
+                    return 120;
+                }
+
                 return Math.Min(Math.Max(this.TickRate, 1), 120);
             }
         }

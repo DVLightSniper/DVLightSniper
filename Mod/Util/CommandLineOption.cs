@@ -40,6 +40,7 @@ namespace DVLightSniper.Mod.Util
         internal static bool DEBUG_RAYTRACE;
         internal static bool DEBUG_MARKERS;
         internal static bool DEBUG_TOGGLE_CAPS;
+        internal static bool DEBUG_NOSPAM;
 
         internal static bool RESET_TEMPLATES;
         internal static bool RESET_DECORATION_TEMPLATES;
@@ -52,6 +53,7 @@ namespace DVLightSniper.Mod.Util
             CommandLineOption.DEBUG_RAYTRACE = commandLineArgs.Contains("-debug-raytrace");
             CommandLineOption.DEBUG_MARKERS = commandLineArgs.Contains("-debug-markers");
             CommandLineOption.DEBUG_TOGGLE_CAPS = commandLineArgs.Contains("-debug-toggle-caps");
+            CommandLineOption.DEBUG_NOSPAM = commandLineArgs.Contains("-debug-nospam");
 
             CommandLineOption.RESET_TEMPLATES = commandLineArgs.Contains("-reset-templates");
             CommandLineOption.RESET_DECORATION_TEMPLATES = commandLineArgs.Contains("-reset-decoration-templates");

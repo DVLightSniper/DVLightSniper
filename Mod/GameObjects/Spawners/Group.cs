@@ -25,6 +25,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,6 +40,8 @@ using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 using DVLightSniper.Mod.GameObjects.Spawners.Upgrade;
 using DVLightSniper.Mod.Storage;
 using UpdateTicket = DVLightSniper.Mod.GameObjects.SpawnerController.UpdateTicket;
+using TimingSection = DVLightSniper.Mod.GameObjects.SpawnerController.TimingSection;
+using TimingLevel = DVLightSniper.Mod.GameObjects.SpawnerController.TimingLevel;
 
 using Newtonsoft.Json;
 
@@ -62,6 +65,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         /// parented lights
         /// </summary>
         internal event Action<Group, MeshSpawner> MeshRemoved;
+
+        /// <summary>
+        /// Raised when the Enabled flag is changed
+        /// </summary>
+        internal event Action<bool> EnabledChanged;
 
         /// <summary>
         /// Reference to the region which contains this specific group
@@ -157,13 +165,18 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         [DataMember(Name = "enabled", Order = 1)]
         private bool enabled = true;
 
+        /// <summary>
+        /// Whether this group is enabled or not. For readonly groups (eg. groups which are from a
+        /// pack) the enabled state is stored in the pack metadata. For all other groups this flag
+        /// is stored in the group json.
+        /// </summary>
         internal bool Enabled
         {
             get
             {
                 if (this.Pack != null)
                 {
-                    return this.Pack.GetFlag(this.Region.YardID + ":" + this.BaseName + ":enabled", this.enabled);
+                    return this.Pack.Enabled && this.Pack.GetFlag(this.Region.YardID + ":" + this.BaseName + ":enabled", this.enabled);
                 }
 
                 return this.enabled;
@@ -171,7 +184,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
             set
             {
-                if (this.enabled && !value)
+                if (this.Enabled && !value)
                 {
                     this.Destroy();
                 }
@@ -179,21 +192,43 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 if (this.Pack != null)
                 {
                     this.Pack.SetFlag(this.Region.YardID + ":" + this.BaseName + ":enabled", value);
-                    return;
+                }
+                else
+                {
+                    this.enabled = value;
                 }
 
-                this.enabled = value;
+                this.EnabledChanged?.Invoke(value);
             }
         }
 
-        [DataMember(Name = "lights", EmitDefaultValue = false, IsRequired = false, Order = 2)]
+        /// <summary>
+        /// Group priority
+        /// </summary>
+        [DataMember(Name = "priority", Order = 2)]
+        internal Priority Priority { get; set; } = Priority.Normal;
+
+        /// <summary>
+        /// Light spawners in this group
+        /// </summary>
+        [DataMember(Name = "lights", EmitDefaultValue = false, IsRequired = false, Order = 3)]
         private List<LightSpawner> lights = new List<LightSpawner>();
 
-        [DataMember(Name = "meshes", EmitDefaultValue = false, IsRequired = false, Order = 3)]
+        /// <summary>
+        /// Mesh spawners in this group
+        /// </summary>
+        [DataMember(Name = "meshes", EmitDefaultValue = false, IsRequired = false, Order = 4)]
         private List<MeshSpawner> meshes = new List<MeshSpawner>();
 
-        [DataMember(Name = "decorations", EmitDefaultValue = false, IsRequired = false, Order = 4)]
+        /// <summary>
+        /// Decoration spawners in this group
+        /// </summary>
+        [DataMember(Name = "decorations", EmitDefaultValue = false, IsRequired = false, Order = 5)]
         private List<DecorationSpawner> decorations = new List<DecorationSpawner>();
+
+        private static readonly TimingSection meshTimings = TimingSection.Get("meshes", TimingLevel.Group);
+        private static readonly TimingSection lightTimings = TimingSection.Get("lights", TimingLevel.Group);
+        private static readonly TimingSection decorationTimings = TimingSection.Get("decorations", TimingLevel.Group);
 
         internal LightSpawner CreateLight(string parentPath, Vector3 localPosition, Quaternion rotation, LightProperties properties)
         {
@@ -301,14 +336,19 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 return;
             }
 
-            using (UpdateTicket.TimingSection section = ticket.Begin("meshes"))
-            {
-                this.Tick(ticket, this.meshes);
-                section.Next("lights");
-                this.Tick(ticket, this.lights);
-                section.Next("decorations");
-                this.Tick(ticket, this.decorations);
-            }
+            ticket.TickedGroup();
+
+            Group.meshTimings.Start();
+            this.Tick(ticket, this.meshes);
+            Group.meshTimings.End();
+
+            Group.lightTimings.Start();
+            this.Tick(ticket, this.lights);
+            Group.lightTimings.End();
+
+            Group.decorationTimings.Start();
+            this.Tick(ticket, this.decorations);
+            Group.decorationTimings.End();
         }
 
         private void Tick<T>(UpdateTicket ticket, List<T> spawners) where T : Spawner
@@ -329,13 +369,13 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
-        internal void GlobalUpdate()
+        internal void GlobalUpdate(UpdateTicket ticket)
         {
             foreach (Spawner spawner in this)
             {
                 if (spawner.IsGlobal)
                 {
-                    spawner.GlobalUpdate();
+                    spawner.GlobalUpdate(ticket);
                 }
             }
         }
@@ -496,7 +536,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
         internal static Group Load(Region region, Pack pack, string path)
         {
-            return JsonStorage.Read<Group>(pack.OpenStream(path), path)?.Awake(region, pack);
+            return JsonStorage.Read<Group>(pack.OpenStream(path)?.Stream, path)?.Awake(region, pack);
         }
 
         public override string ToString()
@@ -504,10 +544,23 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             return $"{this.Region.YardID}:{this.Name}";
         }
 
+        private void OnPackEnabledChanged(bool enabled)
+        {
+            if (!enabled)
+            {
+                this.Destroy();
+            }
+        }
+
         private Group Awake(Region region, Pack pack)
         {
             this.Region = region;
             this.Pack = pack;
+
+            if (pack != null)
+            {
+                pack.EnabledChanged += this.OnPackEnabledChanged;
+            }
 
             if (this.lights == null)
             {

@@ -32,6 +32,8 @@ using System.Threading.Tasks;
 using CommandTerminal;
 
 using DVLightSniper.Mod.GameObjects;
+using DVLightSniper.Mod.GameObjects.Spawners.Packs;
+using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 using DVLightSniper.Mod.Util;
 
 using UnityEngine;
@@ -55,18 +57,23 @@ namespace DVLightSniper.Mod
 
             try
             {
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.InstallDefaultPack", ConsoleCommands.InstallDefaultPack, 0, 0);
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.InstallPack",        ConsoleCommands.InstallPack,        1, 1);
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.EnablePack",         ConsoleCommands.EnablePack,         1, 1);
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.DisablePack",        ConsoleCommands.DisablePack,        1, 1);
                 ConsoleCommands.RegisterCommand("BG",          "LightSniper.BeginGroup",         ConsoleCommands.BeginGroup,         1, 1);
                 ConsoleCommands.RegisterCommand("EG",          "LightSniper.EndGroup",           ConsoleCommands.EndGroup,           0, 0);
                 ConsoleCommands.RegisterCommand("LON",         "LightSniper.EnableGroup",        ConsoleCommands.EnableGroup,        0, 2);
                 ConsoleCommands.RegisterCommand("LOFF",        "LightSniper.DisableGroup",       ConsoleCommands.DisableGroup,       0, 2);
+                ConsoleCommands.RegisterCommand("PRIO",        "LightSniper.GroupPriority",      ConsoleCommands.GroupPriority,      0, 3);
                 ConsoleCommands.RegisterCommand("RGN",         "LightSniper.SetRegion",          ConsoleCommands.SetRegion,          0, 1);
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.SaveTemplate",       ConsoleCommands.SaveTemplate,       1   );
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.ReloadTemplates",    ConsoleCommands.ReloadTemplates,    0, 0);
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.CleanUpOnExit",      ConsoleCommands.CleanUpOnExit,      0, 1);
 
                 // hidden from autocomplete, dev only
                 ConsoleCommands.RegisterCommand("MARKERS",     "LightSniper.ToggleMarkers",      ConsoleCommands.ToggleMarkers,      0, 0, false);
                 ConsoleCommands.RegisterCommand("DBGTOGGLE",   "LightSniper.ToggleDebugOverlay", ConsoleCommands.ToggleDebugOverlay, 0, 0, false);
+                ConsoleCommands.RegisterCommand("DBGLEVEL",    "LightSniper.SetDebugLevel",      ConsoleCommands.SetDebugLevel,      1,-1, false);
                 ConsoleCommands.RegisterCommand("MARKORPHANS", "LightSniper.MarkOrphans",        ConsoleCommands.MarkOrphans,        0, 0, false);
                 ConsoleCommands.RegisterCommand("KILLORPHANS", "LightSniper.KillOrphans",        ConsoleCommands.KillOrphans,        0, 0, false);
                 ConsoleCommands.RegisterCommand("FREEORPHANS", "LightSniper.FreeOrphans",        ConsoleCommands.FreeOrphans,        0, 0, false);
@@ -92,16 +99,51 @@ namespace DVLightSniper.Mod
             }
         }
 
-        private static void InstallDefaultPack(CommandArg[] args)
+        private static void InstallPack(CommandArg[] args)
         {
-            if (LightSniper.SpawnerController != null && LightSniper.SpawnerController.InstallDefaultPack())
+            if (ConsoleCommands.GetNameFromArgs(args, false, false, out string packId, 0, "Pack") && PackLoader.Unpack(packId))
             {
-                Terminal.Log(TerminalLogType.Message, "Default pack successfully installed");
+                Terminal.Log(TerminalLogType.Message, "Pack successfully installed");
+                LightSniper.SpawnerController?.Reload();
             }
             else
             {
-                Terminal.Log(TerminalLogType.Warning, "Could not install default pack, maybe it's already installed");
+                Terminal.Log(TerminalLogType.Warning, "Could not install pack {0}, maybe it's already installed", packId);
             }
+        }
+
+        private static void EnablePack(CommandArg[] args)
+        {
+            ConsoleCommands.EnablePack(args, true);
+        }
+
+        private static void DisablePack(CommandArg[] args)
+        {
+            ConsoleCommands.EnablePack(args, false);
+        }
+
+        private static void EnablePack(CommandArg[] args, bool enabled)
+        {
+            if (!ConsoleCommands.GetNameFromArgs(args, false, false, out string packId, 0, "Pack"))
+            {
+                return;
+            }
+
+            Pack pack = PackLoader.Get(packId);
+            if (pack == null)
+            {
+                Terminal.Log(TerminalLogType.Warning, "Pack {0} not found", packId);
+                return;
+            }
+
+            if (pack.Enabled == enabled)
+            {
+                Terminal.Log(TerminalLogType.Message, "Pack {0} is already {1}", packId, enabled ? "Enabled" : "Disabled");
+                return;
+            }
+
+            pack.Enabled = enabled;
+            Terminal.Log(TerminalLogType.Message, "{0} pack {1}", enabled ? "Enabled" : "Disabled", packId);
         }
 
         private static void BeginGroup(CommandArg[] args)
@@ -133,13 +175,48 @@ namespace DVLightSniper.Mod
             int groupArgIndex = 0;
             if (args.Length > 1)
             {
-                ConsoleCommands.GetNameFromArgs(args, true, false, out yardId, 0, "Region", "");
+                if (!ConsoleCommands.GetNameFromArgs(args, true, false, out yardId, 0, "Region"))
+                {
+                    return;
+                }
                 groupArgIndex = 1;
             }
 
             if (ConsoleCommands.GetNameFromArgs(args, true, true, out string groupName, groupArgIndex))
             {
                 LightSniper.SpawnerController?.EnableGroup(yardId, groupName, enabled);
+            }
+        }
+
+        private static void GroupPriority(CommandArg[] args)
+        {
+            string yardId = "*";
+            int groupArgIndex = 0;
+            if (args.Length > 2)
+            {
+                if (!ConsoleCommands.GetNameFromArgs(args, true, false, out yardId, 0, "Region"))
+                {
+                    return;
+                }
+                groupArgIndex = 1;
+            }
+
+            if (ConsoleCommands.GetNameFromArgs(args, true, true, out string groupName, groupArgIndex))
+            {
+                if (args.Length < groupArgIndex + 2)
+                {
+                    Terminal.Log(TerminalLogType.Error, "New priority must be specified");
+                    return;
+                }
+
+                if (Enum.TryParse(args[groupArgIndex + 1].String, true, out Priority priority))
+                {
+                    LightSniper.SpawnerController?.SetGroupPriority(yardId, groupName, priority);
+                }
+                else
+                {
+                    Terminal.Log(TerminalLogType.Error, "Unrecognised priority '{0}'", args[groupArgIndex + 1].String);
+                }
             }
         }
 
@@ -179,7 +256,7 @@ namespace DVLightSniper.Mod
             }
         }
 
-        private static void ReloadTemplates(CommandArg[] obj)
+        private static void ReloadTemplates(CommandArg[] args)
         {
             GameObject radioControllerHolder = GameObject.Find("LightSniperRadioController");
             if (radioControllerHolder != null)
@@ -188,6 +265,21 @@ namespace DVLightSniper.Mod
                 radioController.ReloadTemplates();
                 Terminal.Log(TerminalLogType.Message, "Templates reloaded from disk");
             }
+        }
+
+        private static void CleanUpOnExit(CommandArg[] args)
+        {
+            if (args.Length == 1)
+            {
+                LightSniper.Settings.cleanUpOnExit = args[0].Bool;
+            }
+            else
+            {
+                LightSniper.Settings.cleanUpOnExit = !LightSniper.Settings.cleanUpOnExit;
+            }
+
+            Terminal.Log(TerminalLogType.Message, "cleanUpOnExit is now {0}", LightSniper.Settings.cleanUpOnExit);
+            LightSniper.Settings.Save(LightSniper.ModEntry);
         }
 
         private static bool GetNameFromArgs(CommandArg[] args, bool allowNone, bool allowColon, out string name, int argIndex = 0, string type = "Group", string defaultValue = "*")
@@ -236,30 +328,54 @@ namespace DVLightSniper.Mod
             return true;
         }
 
-        private static void ToggleMarkers(CommandArg[] obj)
+        private static void ToggleMarkers(CommandArg[] args)
         {
             LightSniper.Settings.showDebugMarkers = !LightSniper.Settings.showDebugMarkers;
             LightSniper.Settings.Save(LightSniper.ModEntry);
         }
 
-        private static void ToggleDebugOverlay(CommandArg[] obj)
+        private static void ToggleDebugOverlay(CommandArg[] args)
         {
             DebugOverlay.Visible = !DebugOverlay.Visible;
         }
 
-        private static void MarkOrphans(CommandArg[] obj)
+        private static void SetDebugLevel(CommandArg[] args)
+        {
+            int debugLevel = 0;
+
+            foreach (CommandArg arg in args)
+            {
+                if (int.TryParse(arg.String, out int value))
+                {
+                    debugLevel |= value;
+                }
+                else if (Enum.TryParse(arg.String, true, out SpawnerController.TimingLevel level))
+                {
+                    debugLevel |= (int)level;
+                }
+                else
+                {
+                    Terminal.Log(TerminalLogType.Warning, "Unrecognised level argument {0}", arg.String);
+                }
+            }
+
+            LightSniper.Settings.debugLevel = debugLevel;
+            LightSniper.Settings.Save(LightSniper.ModEntry);
+        }
+
+        private static void MarkOrphans(CommandArg[] args)
         {
             SpawnerController.MarkOrphans = !SpawnerController.MarkOrphans;
             Terminal.Log(TerminalLogType.Message, "Mark orphans is now " + SpawnerController.MarkOrphans);
         }
 
-        private static void KillOrphans(CommandArg[] obj)
+        private static void KillOrphans(CommandArg[] args)
         {
             SpawnerController.KillOrphans = true;
             Terminal.Log(TerminalLogType.Message, "Orphans will be killed for 10 seconds");
         }
 
-        private static void FreeOrphans(CommandArg[] obj)
+        private static void FreeOrphans(CommandArg[] args)
         {
             SpawnerController.FreeOrphans = true;
             Terminal.Log(TerminalLogType.Message, "Inhibited orphans will be released for 10 seconds");

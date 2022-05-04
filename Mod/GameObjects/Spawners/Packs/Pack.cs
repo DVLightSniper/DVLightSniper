@@ -44,6 +44,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
     internal abstract class Pack : IDisposable
     {
         /// <summary>
+        /// When enabled state changes
+        /// </summary>
+        internal event Action<bool> EnabledChanged;
+
+        /// <summary>
         /// Full path to this pack
         /// </summary>
         internal string Path { get; }
@@ -87,6 +92,27 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
         /// </summary>
         public bool Valid { get; protected set; }
 
+        /// <summary>
+        /// Get whether the pack is enabled
+        /// </summary>
+        internal bool Enabled
+        {
+            get
+            {
+                return this.GetFlag("enabled", true);
+            }
+
+            set
+            {
+                bool oldValue = this.Enabled;
+                this.SetFlag("enabled", value);
+                if (oldValue != value)
+                {
+                    this.EnabledChanged?.Invoke(value);
+                }
+            }
+        }
+
         private readonly PackMeta meta;
 
         internal Pack(string path, PackMetaStorage metaStorage)
@@ -109,12 +135,12 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
         {
             try
             {
-                JObject info = this.OpenJson("Info.json");
+                PackJson info = this.OpenJson("Info.json");
                 if (info == null)
                 {
                     return false;
                 }
-                this.ReadInfo(info);
+                this.ReadInfo(info.JObject);
                 if (this.DVBuild != Config.BUILD_VERSION)
                 {
                     LightSniper.Logger.Error("{0} with ID {1} and Version {2} is not compatible with this Derail Valley build ({3}) DVVersion={4}", this.Name, this.Id, this.Version, Config.BUILD_VERSION_STR, this.DVBuild);
@@ -140,22 +166,24 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         internal abstract IEnumerable<string> Find(string path, string extension = null);
 
-        internal abstract Stream OpenStream(string path);
+        internal abstract DateTime GetLastWriteTime(string path);
 
-        internal abstract byte[] OpenResource(string path);
+        internal abstract PackStream OpenStream(string path);
 
-        internal virtual JObject OpenJson(string path)
+        internal abstract PackResource OpenResource(string path);
+
+        internal virtual PackJson OpenJson(string path)
         {
-            Stream resource = this.OpenStream(path);
+            PackStream resource = this.OpenStream(path);
             if (resource == null)
             {
                 return null;
             }
             try
             {
-                using (StreamReader sr = new StreamReader(resource))
+                using (StreamReader sr = new StreamReader(resource.Stream))
                 {
-                    return JObject.Load(new JsonTextReader(sr));
+                    return new PackJson(this, resource.Name, resource.LastWriteTime, JObject.Load(new JsonTextReader(sr)));
                 }
             }
             catch (Exception e)

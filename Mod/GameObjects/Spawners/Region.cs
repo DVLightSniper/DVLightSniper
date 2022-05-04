@@ -33,6 +33,7 @@ using System.Runtime.Serialization;
 using DVLightSniper.Mod.Components;
 using DVLightSniper.Mod.GameObjects.Spawners.Packs;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
+using UpdateTicket = DVLightSniper.Mod.GameObjects.SpawnerController.UpdateTicket;
 
 using UnityEngine;
 
@@ -109,7 +110,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         /// <summary>
         /// Groups in this region
         /// </summary>
-        private readonly IList<Group> groups = new List<Group>();
+        private readonly List<Group> groups = new List<Group>();
         
         /// <summary>
         /// Default group (user) which is used when adding new spawners with no other group selected
@@ -218,8 +219,14 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             if (group != null)
             {
                 this.groups.Add(group);
+                this.SortGroups();
                 group.MeshRemoved += this.OnMeshRemoved;
             }
+        }
+
+        private void SortGroups()
+        {
+            this.groups.Sort((a, b) => a.Priority == b.Priority ? string.Compare(a.Name, b.Name, StringComparison.Ordinal) : a.Priority - b.Priority);
         }
 
         internal void Save()
@@ -286,6 +293,20 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        internal void SetGroupPriority(string groupName, Priority priority)
+        {
+            foreach (Group group in this.groups)
+            {
+                if (group.Editable && (groupName == "*" || group.Name.Equals(groupName, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    group.Priority = priority;
+                    group.Save();
+                }
+            }
+
+            this.SortGroups();
+        }
+
         private void OnMeshRemoved(Group sender, MeshSpawner mesh)
         {
             foreach (Group group in this.groups)
@@ -299,9 +320,16 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             return (T)this.CurrentGroup.Add(spawner);
         }
 
-        internal void Tick(SpawnerController.UpdateTicket ticket)
+        internal bool Contains(Vector2 worldLocation, bool tickRadius, bool radiusOnly)
         {
-            if (this.WorldLocation == Vector2.zero ? this.TickArea.Contains(ticket.PlayerLocation) : (this.WorldLocation - ticket.PlayerLocation).sqrMagnitude < Region.TICK_RADIUS_SQ)
+            float radiusSq = tickRadius ? Region.TICK_RADIUS_SQ : Region.RADIUS_SQ;
+            Rect area = tickRadius ? this.TickArea : this.Area;
+            return this.WorldLocation == Vector2.zero ? !radiusOnly && area.Contains(worldLocation) : (this.WorldLocation - worldLocation).sqrMagnitude < radiusSq;
+        }
+
+        internal void Tick(UpdateTicket ticket)
+        {
+            if (this.Contains(ticket.PlayerLocation, true, false))
             {
                 this.Controller.NotifyUpdated(this);
                 foreach (Group group in this.groups)
@@ -314,7 +342,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 foreach (Group group in this.groups)
                 {
                     // Global update is only used to update culling for global objects outside of the normal tick radius
-                    group.GlobalUpdate();
+                    group.GlobalUpdate(ticket);
                 }
             }
         }
@@ -324,6 +352,26 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             foreach (Group group in this.groups)
             {
                 group.Destroy();
+            }
+        }
+
+        internal void CleanUp()
+        {
+            if (this.groups.Any(group => group.Pack == null && !group.IsEmpty))
+            {
+                return;
+            }
+
+            try
+            {
+                if (Directory.Exists(this.Dir))
+                {
+                    Directory.Delete(this.Dir);
+                }
+            }
+            catch
+            {
+                // don't care that much, probably another file in the directory
             }
         }
 

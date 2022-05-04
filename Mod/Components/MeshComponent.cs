@@ -54,7 +54,7 @@ namespace DVLightSniper.Mod.Components
 
         private readonly List<MeshRenderer> sources = new List<MeshRenderer>();
 
-        private bool selected, sourceOn;
+        private bool selected, sourceOn = true;
 
         private Material selectedMaterial;
 
@@ -81,6 +81,7 @@ namespace DVLightSniper.Mod.Components
                 if (meshRenderer.name.StartsWith("Source"))
                 {
                     this.sources.Add(meshRenderer);
+                    meshRenderer.enabled = false;
                 }
             }
         }
@@ -103,12 +104,13 @@ namespace DVLightSniper.Mod.Components
                 }
             }
 
-            if (this.Spawner.On != this.sourceOn)
+            bool actuallyOn = this.Spawner.On && !this.Spawner.Inhibit;
+            if (actuallyOn != this.sourceOn || (this.Spawner.Inhibit && !actuallyOn))
             {
-                this.sourceOn = this.Spawner.On;
+                this.sourceOn = actuallyOn;
                 foreach (MeshRenderer source in this.sources)
                 {
-                    source.enabled = this.sourceOn;
+                    source.enabled = !this.Spawner.Inhibit && (source.name.EndsWith("_Inv") ? !this.sourceOn : this.sourceOn);
                 }
             }
         }

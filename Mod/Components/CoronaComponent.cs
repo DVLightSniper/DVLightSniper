@@ -25,6 +25,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 
@@ -44,6 +45,8 @@ using VRTK;
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
 using Resources = DVLightSniper.Properties.Resources;
+using TimingSection = DVLightSniper.Mod.GameObjects.SpawnerController.TimingSection;
+using TimingLevel = DVLightSniper.Mod.GameObjects.SpawnerController.TimingLevel;
 
 namespace DVLightSniper.Mod.Components
 {
@@ -54,96 +57,6 @@ namespace DVLightSniper.Mod.Components
     /// </summary>
     internal class CoronaComponent : MonoBehaviour
     {
-        /// <summary>
-        /// Handle to a texture resource which is (probably) loaded from a file on disk
-        /// </summary>
-        internal class TextureHandle
-        {
-            /// <summary>
-            /// Filename to load the texture from
-            /// </summary>
-            internal string Filename { get; }
-
-            /// <summary>
-            /// Texture resource to load the texture data into
-            /// </summary>
-            internal Texture2D Texture { get; }
-
-            /// <summary>
-            /// Flag which indicates the file was changed on disk, used to trigger a reload of the
-            /// sprite the next time it's updated
-            /// </summary>
-            internal bool Changed { get; private set; }
-
-            /// <summary>
-            /// True if the file was loaded successfully
-            /// </summary>
-            internal bool Valid { get; private set; }
-
-            private readonly string path;
-
-            public TextureHandle(string fileName)
-            {
-                this.Filename = fileName;
-                this.Texture = new Texture2D(CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE)
-                {
-                    filterMode = FilterMode.Point
-                };
-                
-                this.path = Path.Combine(CoronaComponent.Dir, fileName);
-
-                FileSystemWatcher watcher = new FileSystemWatcher(CoronaComponent.Dir)
-                {
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                    Filter = fileName
-                };
-
-                this.ReloadSprite();
-
-                watcher.Changed += (sender, e) => this.Changed = true;
-                watcher.EnableRaisingEvents = true;
-            }
-
-            internal void ReloadSprite()
-            {
-                if (!File.Exists(this.path))
-                {
-                    object data = Resources.ResourceManager.GetObject(this.Filename, Resources.Culture);
-                    if (data != null)
-                    {
-                        this.Texture.LoadImage((byte[])data);
-                        this.Valid = true;
-                    }
-                    else
-                    {
-                        byte[] resource = PackLoader.OpenResource(this.path.RelativeToBaseDir());
-                        if (resource != null)
-                        {
-                            this.Texture.LoadImage(resource);
-                            this.Valid = true;
-                        }
-                    }
-
-                    this.Changed = false;
-                    return;
-                }
-
-                this.Valid = false;
-
-                try
-                {
-                    byte[] data = File.ReadAllBytes(this.path);
-                    this.Texture.LoadImage(data);
-                    this.Changed = false;
-                    this.Valid = true;
-                }
-                catch (Exception e)
-                {
-                    LightSniper.Logger.Error(e);
-                }
-            }
-        }
-
         internal static readonly int LAYER_MASK = LayerMask.GetMask(
             Layers.Default,
             Layers.Terrain,
@@ -156,14 +69,30 @@ namespace DVLightSniper.Mod.Components
             Layers.Render_Elements
         );
 
+        /// <summary>
+        /// Texture size for loaded corona textures
+        /// </summary>
         internal const int TEXTURE_SIZE = 256;
 
+        /// <summary>
+        /// Global scale adjustment, for science
+        /// </summary>
         private const float SCALE_ADJUST = 0.6F;
 
-        private const string BUILTIN_SHADER_NAME = "assets/builtin/shaders/corona.shader";
-        private const string FALLBACK_SHADER_NAME = "Hidden/Internal-GUITexture";
+        /// <summary>
+        /// Corona shader resource name to load from builtin assets
+        /// </summary>
+        private const string SHADER_NAME = "assets/builtin/shaders/corona.shader";
 
+        /// <summary>
+        /// Number of frames to fade out corona when it becomes occluded
+        /// </summary>
         private const int LINGER_FRAMES = 15;
+
+        /// <summary>
+        /// Min time between position updates
+        /// </summary>
+        private const int POSITION_UPDATE_RATE = 25;
 
         private static IList<string> availableCoronas = null;
 
@@ -174,7 +103,7 @@ namespace DVLightSniper.Mod.Components
                 if (CoronaComponent.availableCoronas == null)
                 {
                     CoronaComponent.availableCoronas = new List<string> { "" };
-                    foreach (string file in Directory.EnumerateFiles(CoronaComponent.Dir, "*.png"))
+                    foreach (string file in AssetLoader.Coronas.ListFiles())
                     {
                         CoronaComponent.availableCoronas.Add(Path.GetFileName(file));
                     }
@@ -183,20 +112,6 @@ namespace DVLightSniper.Mod.Components
                 return CoronaComponent.availableCoronas;
             }
         }
-
-        private static readonly IDictionary<string, TextureHandle> coronaTextures = new Dictionary<string, TextureHandle>();
-
-        private static TextureHandle GetCoronaTexture(string fileName)
-        {
-            if (!CoronaComponent.coronaTextures.ContainsKey(fileName))
-            {
-                CoronaComponent.coronaTextures[fileName] = new TextureHandle(fileName);
-            }
-
-            return CoronaComponent.coronaTextures[fileName];
-        }
-
-        internal static string Dir { get; }
 
         internal String Corona { get; set; }
 
@@ -224,24 +139,50 @@ namespace DVLightSniper.Mod.Components
 
         internal LightSpawner Spawner { get; set; }
 
-        private TextureHandle texture;
+        private AssetLoader.TextureHandle texture;
         private Material material;
         private SpriteRenderer spriteRenderer;
 
-        private bool useAlphaScale = true;
         private int fadeOutFrames = 0;
 
         private bool failedToLoadShader;
 
-        static CoronaComponent()
+        private readonly TimingSection timings = TimingSection.Get("corona", TimingLevel.Others);
+
+        private Vector3 lastCameraPosition;
+        private Stopwatch lastCameraComputeTime;
+        private float lastCameraDistance;
+
+        private float GetCameraDistance()
         {
-            CoronaComponent.Dir = AssetLoader.Coronas.Dir;
+            Vector3 cameraPosition = SpawnerController.PlayerCameraTransform.position;
+            if (cameraPosition != this.lastCameraPosition && this.lastCameraComputeTime.ElapsedMilliseconds > CoronaComponent.POSITION_UPDATE_RATE)
+            {
+                this.lastCameraDistance = Vector3.Distance(cameraPosition, this.spriteRenderer.transform.position);
+                this.lastCameraPosition = cameraPosition;
+                this.lastCameraComputeTime.Restart();
+            }
+            return this.lastCameraDistance;
+        }
+
+        [UsedImplicitly]
+        private void Start()
+        {
+            this.lastCameraComputeTime = new Stopwatch();
+            this.lastCameraComputeTime.Start();
         }
 
         [UsedImplicitly]
         private void Update()
         {
-            if (this.Corona == null || this.failedToLoadShader || (LightSniper.Settings.CoronaOpacity == 0))
+            this.timings.Start();
+            this.UpdateCorona();
+            this.timings.End();
+        }
+
+        private void UpdateCorona()
+        {
+            if (this.Corona == null || this.failedToLoadShader || LightSniper.Settings.CoronaOpacity == 0)
             {
                 if (this.currentCorona != null)
                 {
@@ -254,7 +195,7 @@ namespace DVLightSniper.Mod.Components
             if (this.texture != null && this.texture.Changed)
             {
                 CoronaComponent.availableCoronas = null;
-                this.texture.ReloadSprite();
+                this.texture.Reload();
             }
 
             if (this.texture != null && !this.texture.Valid)
@@ -268,26 +209,19 @@ namespace DVLightSniper.Mod.Components
 
                 try
                 {
-                    this.useAlphaScale = true;
-                    Shader shader = AssetLoader.Builtin.LoadBuiltin<Shader>(CoronaComponent.BUILTIN_SHADER_NAME);
+                    Shader shader = AssetLoader.Builtin.LoadBuiltin<Shader>(CoronaComponent.SHADER_NAME);
                     if (shader == null)
                     {
-                        LightSniper.Logger.Warn("Failed to load corona shader from internal resources, using fallback shader");
-                        this.useAlphaScale = false;
-                        shader = Shader.Find(CoronaComponent.FALLBACK_SHADER_NAME);
-                        if (shader == null)
-                        {
-                            LightSniper.Logger.Error("Failed to load fallback shader " + CoronaComponent.FALLBACK_SHADER_NAME + " for corona sprite renderer");
-                            this.failedToLoadShader = true;
-                            return;
-                        }
+                        LightSniper.Logger.Warn("Failed to load corona shader");
+                        this.failedToLoadShader = true;
+                        return;
                     }
 
                     this.material = new Material(shader);
                     this.material.hideFlags = HideFlags.HideAndDontSave;
                     this.spriteRenderer = this.gameObject.AddComponent<SpriteRenderer>();
 
-                    this.texture = CoronaComponent.GetCoronaTexture(this.Corona);
+                    this.texture = AssetLoader.Coronas.GetTexture(this.Corona, CoronaComponent.TEXTURE_SIZE);
                     Sprite sprite = Sprite.Create(this.texture.Texture, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
                     this.spriteRenderer.sprite = sprite;
                     this.spriteRenderer.material = this.material;
@@ -305,7 +239,7 @@ namespace DVLightSniper.Mod.Components
 
                 Sprite oldSprite = this.spriteRenderer.sprite;
 
-                this.texture = CoronaComponent.GetCoronaTexture(this.Corona);
+                this.texture = AssetLoader.Coronas.GetTexture(this.Corona, CoronaComponent.TEXTURE_SIZE);
                 Sprite sprite = Sprite.Create(this.texture.Texture, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
                 this.spriteRenderer.sprite = sprite;
 
@@ -317,7 +251,7 @@ namespace DVLightSniper.Mod.Components
                 return;
             }
 
-            float preCullFade = 0.0F;
+            float preCullFade = 1.0F;
 
             if (this.Spawner != null)
             {
@@ -332,7 +266,7 @@ namespace DVLightSniper.Mod.Components
                 preCullFade = this.Spawner.PreCullFade;
             }
 
-            float cameraDistance = Vector3.Distance(SpawnerController.PlayerCameraTransform.position, this.spriteRenderer.transform.position);
+            float cameraDistance = this.GetCameraDistance();
 
             if (cameraDistance > this.MaxDistance)
             {
@@ -344,51 +278,62 @@ namespace DVLightSniper.Mod.Components
             Ray ray = new Ray(this.spriteRenderer.transform.position, rayDirection);
             Physics.Raycast(ray, out RaycastHit hitInfo, this.MaxDistance, CoronaComponent.LAYER_MASK);
 
-            float fadeScale = 1.0F;
+            float fadeOutFade = 1.0F;
+
+            // First figure out whether the player can see the centre point of the light
             bool visibleToPlayer = false;
             if (hitInfo.transform?.tag == "Player")
             {
                 visibleToPlayer = true;
             }
-            else if (SpawnerController.IsFreeCamActive && hitInfo.transform != null)
+            else if (SpawnerController.IsFreeCamActive)
             {
-                float traceDistance = Vector3.Distance(hitInfo.transform.position, this.spriteRenderer.transform.position);
-                visibleToPlayer = traceDistance >= cameraDistance;
+                visibleToPlayer = hitInfo.transform == null || hitInfo.distance >= cameraDistance;
             }
 
             if (visibleToPlayer)
             {
+                // If the light is visible, render at full alpha
                 this.fadeOutFrames = CoronaComponent.LINGER_FRAMES;
             }
             else
             {
+                // Otherwise fade out the corona, this is less visually jarring than just turning it
+                // off because if coronas disappear for only a couple of frames they don't "flicker"
+                // and it also emulates a kind of after-image of the corona
                 if (--this.fadeOutFrames < 1)
                 {
                     this.spriteRenderer.enabled = false;
                     return;
                 }
 
-                fadeScale = (float)this.fadeOutFrames / CoronaComponent.LINGER_FRAMES;
+                fadeOutFade = (float)this.fadeOutFrames / CoronaComponent.LINGER_FRAMES;
             }
 
+            // billboard behaviour, orient the sprite toward the current camera
             this.spriteRenderer.transform.forward = SpawnerController.PlayerCameraTransform.forward;
             this.spriteRenderer.enabled = true;
 
+            // Sprite should stay (roughly) the same size on screen regardless of distance, though
+            // it does change a little
             float spriteScale = 2.0F + (cameraDistance / 4.0F);
             float spriteDistanceFade = 1.0F;
             if (cameraDistance > this.PeakDistance)
             {
+                // once we reach the "peak" distance (where the corona is largest and opaquest) any
+                // distance further away causes the sprite to fade and shrink
                 spriteDistanceFade = (this.MaxDistance - cameraDistance) / (this.MaxDistance - this.PeakDistance);
             }
 
-            if (this.useAlphaScale)
-            {
-                this.material.SetFloat("_AlphaScale", spriteDistanceFade * fadeScale);
-                fadeScale = (LightSniper.Settings.CoronaOpacity * 0.01F);
-                spriteDistanceFade = Math.Min(1.0F, spriteDistanceFade * 2.0F);
-            }
+            // Compute and apply the opacity based on the distance from the camera and the settings
+            float opacity = LightSniper.Settings.CoronaOpacity * 0.01F;
+            this.material.SetFloat("_AlphaScale", spriteDistanceFade * fadeOutFade * opacity);
 
-            this.spriteRenderer.transform.SetGlobalScale(Vector3.one * this.Scale * CoronaComponent.SCALE_ADJUST * spriteScale * spriteDistanceFade * fadeScale * preCullFade);
+            // clamp the distance fade before applying it to the scale
+            spriteDistanceFade = Math.Min(1.0F, spriteDistanceFade * 2.0F);
+
+            // set the sprite scale based on our computed values
+            this.spriteRenderer.transform.SetGlobalScale(Vector3.one * this.Scale * CoronaComponent.SCALE_ADJUST * spriteScale * spriteDistanceFade * opacity * preCullFade);
         }
 
         [UsedImplicitly]

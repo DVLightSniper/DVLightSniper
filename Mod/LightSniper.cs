@@ -33,8 +33,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using CommandTerminal;
-
 using DV;
 
 using DVLightSniper.Mod.GameObjects;
@@ -49,7 +47,6 @@ using ModEntry = UnityModManagerNet.UnityModManager.ModEntry;
 using ModSettings = UnityModManagerNet.UnityModManager.ModSettings;
 
 using Object = UnityEngine.Object;
-using Debug = System.Diagnostics.Debug;
 using Logger = DVLightSniper.Mod.Util.Logger;
 
 namespace DVLightSniper.Mod
@@ -359,8 +356,9 @@ namespace DVLightSniper.Mod
             PlayerManager.PlayerChanged += this.OnPlayerChanged;
 
             Directory.CreateDirectory(System.IO.Path.Combine(LightSniper.Path, "Resources"));
-            AssetLoader.Of("Meshes", (key) => key.StartsWith("meshes_") && key.EndsWith(".assetbundle")).ExtractResources();
-            AssetLoader.Of("Coronas", (key) => key.StartsWith("corona_") && key.EndsWith(".png")).ExtractResources();
+            AssetLoader.Meshes.ExtractResources();
+            AssetLoader.Coronas.ExtractResources();
+            AssetLoader.Coronas.ListFiles();
 
             this.UpdateRadioConnection();
         }

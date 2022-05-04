@@ -50,6 +50,24 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug %28Steam|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug %28Steam\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug %28Steam|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug %28Steam\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -150,6 +168,8 @@
     <Compile Include="Mod\Components\MeshComponent.cs" />
     <Compile Include="Mod\Components\DecorationComponent.cs" />
     <Compile Include="Mod\Components\DecorationsComponent.cs" />
+    <Compile Include="Mod\Components\Prefabs\LevelCrossingBehaviour.cs" />
+    <Compile Include="Mod\Components\Prefabs\PrefabBehaviourAttribute.cs" />
     <Compile Include="Mod\Components\SpawnerComponent.cs" />
     <Compile Include="Mod\Components\TimedMessageComponent.cs" />
     <Compile Include="Mod\ConsoleCommands.cs" />
@@ -162,14 +182,18 @@
     <Compile Include="Mod\GameObjects\Library\Template.cs" />
     <Compile Include="Mod\GameObjects\Library\Templates.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\FolderPack.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackJson.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackMeta.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackMetaStorage.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackResource.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Packs\PackStream.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\ZippedPack.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignment.cs" />
     <Compile Include="Mod\GameObjects\Spawners\DecorationSpawner.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\Pack.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackLoader.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignments.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\Priority.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler_1_92.cs" />
     <Compile Include="Mod\GameObjects\Library\DecorationTarget.cs" />
@@ -230,14 +254,21 @@
     <Content Include="Resources\sprites.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="MODDING.MD" />
+    <None Include="README.MD" />
     <None Include="Resources\builtin.assetbundle" />
-    <None Include="Resources\Builtin_Regions_v1.zip" />
-    <None Include="Resources\meshes_lampposts_v1.assetbundle" />
+    <None Include="Resources\Default_Pack_1.0.zip" />
+    <None Include="Resources\Level_Crossings_Pack_1.0.zip" />
     <None Include="Info.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Resources\meshes_decoration_lights_v1.assetbundle" />
+    <None Include="Resources\meshes_lampposts_1.0.assetbundle" />
+    <None Include="Resources\meshes_decoration_lights_1.0.assetbundle" />
+    <None Include="Resources\meshes_levelcrossings_1.0.assetbundle" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(TargetPath)" "D:\Games\Steam\steamapps\common\Derail Valley\Mods\DVLightSniper\$(TargetFileName)"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

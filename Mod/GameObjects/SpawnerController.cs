@@ -24,9 +24,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Windows.Forms;
 
 using CommandTerminal;
 
@@ -47,8 +49,6 @@ using DVLightSniper.Mod.GameObjects.Spawners.Packs;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 using DVLightSniper.Mod.Util;
 
-using RedworkDE.DvTime;
-
 using TemplateMatch = DVLightSniper.Mod.GameObjects.Library.DecorationTemplate.TemplateMatch;
 
 using DateTime = System.DateTime;
@@ -61,6 +61,106 @@ namespace DVLightSniper.Mod.GameObjects
     /// </summary>
     public class SpawnerController : MonoBehaviour
     {
+        [Flags]
+        internal enum TimingLevel
+        {
+            None = 0,
+            Basic = 1,
+            Group = 2,
+            Spawner = 4,
+            SpawnerDetailed = 8,
+            Others = 16,
+            Fine = 32,
+            Dev = 64,
+
+            Special = 256,
+
+            Custom1 = 512,
+            Custom2 = 1024,
+            Custom3 = 2048,
+            Custom4 = 4096
+        }
+
+        /// <summary>
+        /// Timing section
+        /// </summary>
+        internal class TimingSection
+        {
+            /// <summary>
+            /// All timing sections
+            /// </summary>
+            private static readonly Dictionary<string, TimingSection> timings = new Dictionary<string, TimingSection>();
+
+            /// <summary>
+            /// Section name
+            /// </summary>
+            internal string Name { get; }
+
+            /// <summary>
+            /// Section detail level
+            /// </summary>
+            internal TimingLevel Level { get; }
+
+            /// <summary>
+            /// Total elapsed milliseconds for this section since reset
+            /// </summary>
+            internal double TotalMilliseconds
+            {
+                get
+                {
+                    return this.stopwatch.ElapsedTicks / (Stopwatch.Frequency / 1000.0);
+                }
+            }
+
+            /// <summary>
+            /// Total elapsed nanoseconds for this section since reset
+            /// </summary>
+            internal double TotalNanoseconds
+            {
+                get
+                {
+                    return this.stopwatch.ElapsedTicks / (Stopwatch.Frequency / 1000000.0);
+                }
+            }
+
+            internal int Count { get; private set; }
+
+            private readonly Stopwatch stopwatch = new Stopwatch();
+
+            private TimingSection(string name, TimingLevel level)
+            {
+                this.Name = name;
+                this.Level = level;
+            }
+
+            internal void Start()
+            {
+                this.stopwatch.Start();
+            }
+
+            internal void End()
+            {
+                this.stopwatch.Stop();
+                this.Count++;
+            }
+
+            internal void Reset()
+            {
+                this.stopwatch.Reset();
+                this.Count = 0;
+            }
+
+            internal static TimingSection Get(string name, TimingLevel level)
+            {
+                return TimingSection.timings.ContainsKey(name) ? TimingSection.timings[name] : TimingSection.timings[name] = new TimingSection(name, level);
+            }
+
+            internal static IEnumerable<TimingSection> GetAll()
+            {
+                return TimingSection.timings.Values;
+            }
+        }
+
         /// <summary>
         /// An update ticket used to control rate-limiting of object spawn checks during each tick.
         /// The ticket can be seeded with the desired maximum number of updates for the tick in
@@ -71,58 +171,20 @@ namespace DVLightSniper.Mod.GameObjects
         /// </summary>
         internal class UpdateTicket
         {
-            internal class TimingSection : IDisposable
-            {
-                private readonly Action<string, double> callback;
-
-                private string name;
-
-                private DateTime start = DateTime.Now;
-
-                public TimingSection(string name, Action<string, double> callback)
-                {
-                    this.name = name;
-                    this.callback = callback;
-                }
-
-                public void Next(string name)
-                {
-                    this.End();
-                    this.name = name;
-                    this.start = DateTime.Now;
-                }
-
-                public void End()
-                {
-                    double elapsedTime = (DateTime.Now - this.start).TotalMilliseconds;
-                    this.callback(this.name, elapsedTime);
-                }
-
-                public void Dispose()
-                {
-                    this.End();
-                }
-            }
-
             /// <summary>
             /// Time this ticket was created
             /// </summary>
-            private DateTime resetTime = DateTime.Now;
+            private DateTime resetTime = DateTime.UtcNow;
 
             /// <summary>
             /// Time this update pass was started, used to limit update time overall
             /// </summary>
-            internal DateTime StartTime { get; private set; }
+            private readonly Stopwatch stopwatch = new Stopwatch();
 
             /// <summary>
             /// Number of updates since the timings were reset
             /// </summary>
             private int updateCount = 1;
-
-            /// <summary>
-            /// Timings for the update, tracked for profiling
-            /// </summary>
-            private readonly Dictionary<string, double> timings = new Dictionary<string, double>();
 
             /// <summary>
             /// Section timings as string, for debug display
@@ -134,6 +196,11 @@ namespace DVLightSniper.Mod.GameObjects
             /// desired parent.
             /// </summary>
             internal int OrphanedObjects { get; private set; }
+
+            /// <summary>
+            /// Number of groups which are active (inside the tick radius)
+            /// </summary>
+            internal int ActiveGroups { get; private set; }
 
             /// <summary>
             /// Number of lights which are active (have spawned) and ticked their components (eg.
@@ -173,6 +240,11 @@ namespace DVLightSniper.Mod.GameObjects
             internal int UpdatesRemaining { get; private set; }
 
             /// <summary>
+            /// Allowed timeslice for this update
+            /// </summary>
+            internal long TimeSlice { get; private set; }
+
+            /// <summary>
             /// Whether the number of updates remaining in this ticket is greater than zero, which
             /// allows an object to perform an expensive operation
             /// </summary>
@@ -180,8 +252,18 @@ namespace DVLightSniper.Mod.GameObjects
             {
                 get
                 {
-                    TimeSpan elapsed = DateTime.Now - this.StartTime;
-                    return this.UpdatesRemaining > 0 && elapsed.TotalMilliseconds < SpawnerController.MAX_UPDATE_TIME_MS;
+                    return this.UpdatesRemaining > 0 && this.stopwatch.ElapsedMilliseconds < this.TimeSlice;
+                }
+            }
+
+            /// <summary>
+            /// Total number of milliseconds spent updating
+            /// </summary>
+            internal double UpdateMilliseconds
+            {
+                get
+                {
+                    return this.stopwatch.ElapsedTicks / (Stopwatch.Frequency / 1000.0);
                 }
             }
 
@@ -200,16 +282,27 @@ namespace DVLightSniper.Mod.GameObjects
             }
 
             /// <summary>
+            /// Player location last frame
+            /// </summary>
+            private Vector2 lastPlayerLocation;
+
+            /// <summary>
+            /// Whether the player has moved since the last frame
+            /// </summary>
+            internal bool HasMoved { get; private set; }
+
+            /// <summary>
             /// Begin a new update pass at the specified player location with the specified number
             /// of available updates
             /// </summary>
             /// <param name="playerLocation"></param>
             /// <param name="updates"></param>
-            internal void Begin(Vector2 playerLocation, int updates)
+            internal void Begin(Vector2 playerLocation, int updates, long timeslice)
             {
-                this.StartTime = DateTime.Now;
+                this.stopwatch.Restart();
                 this.PlayerLocation = playerLocation;
                 this.UpdatesRemaining = updates;
+                this.TimeSlice = timeslice;
                 this.Marks = 0;
 
                 this.OrphanedObjects = 0;
@@ -219,26 +312,53 @@ namespace DVLightSniper.Mod.GameObjects
                 this.VisibleMeshes = 0;
                 this.ActiveDecorations = 0;
                 this.VisibleDecorations = 0;
+                this.ActiveGroups = 0;
 
                 this.updateCount++;
 
-                double sinceReset = (DateTime.Now - this.resetTime).TotalSeconds;
+                double sinceReset = (DateTime.UtcNow - this.resetTime).TotalSeconds;
                 if (sinceReset >= 1.0)
                 {
                     if (DebugOverlay.Active)
                     {
                         StringBuilder sb = new StringBuilder();
                         sb.AppendFormat("Updates: {0}", this.updateCount);
-                        foreach (KeyValuePair<string, double> timing in this.timings)
+                        foreach (TimingSection section in TimingSection.GetAll())
                         {
-                            sb.AppendFormat("\n{0,-20} {1,16:F4}ms ({2,8:F4}ms avg.)", timing.Key, timing.Value, (timing.Value / this.updateCount));
+                            TimingLevel debugLevel = (TimingLevel)(LightSniper.Settings?.debugLevel ?? 1);
+                            if (debugLevel.HasFlag(section.Level))
+                            {
+                                double value = section.TotalMilliseconds;
+                                double avgElapsed = value / sinceReset;
+                                double avgFrame = this.updateCount > 0 ? value / this.updateCount : 0;
+                                double avgSection = section.Count > 0 ? value / section.Count : 0;
+
+                                string colour = avgElapsed > 500 ? "FF0000" : avgElapsed > 250 ? "FF5500" : avgElapsed > 100 ? "FFAA00" : avgElapsed > 25 ? "FFFF00" : avgElapsed > 1 ? "99FF00" : "";
+
+                                string startTag = colour != "" ? $"<color=#{colour}>" : "";
+                                string endTag = colour != "" ? "</color>" : "";
+
+                                sb.AppendFormat("\n{0}{1,-30} {2,10:F4}ms/sec  {3,8:F4}ms/frame avg.  {4,11:F7}ms/call avg.  n={5}{6}", startTag, section.Name, avgElapsed, avgFrame, avgSection, section.Count, endTag);
+                            }
+                            section.Reset();
                         }
                         this.Timings = sb.ToString();
                     }
-                    this.timings.Clear();
-                    this.resetTime = DateTime.Now;
+                    this.resetTime = DateTime.UtcNow;
                     this.updateCount = 1;
+                    this.HasMoved = true;
                 }
+                else
+                {
+                    this.HasMoved = this.PlayerLocation != this.lastPlayerLocation;
+                }
+
+                this.lastPlayerLocation = this.PlayerLocation;
+            }
+
+            internal void End()
+            {
+                this.stopwatch.Stop();
             }
 
             /// <summary>
@@ -257,6 +377,14 @@ namespace DVLightSniper.Mod.GameObjects
             internal void Drift()
             {
                 this.OrphanedObjects++;
+            }
+
+            /// <summary>
+            /// Register a group tick
+            /// </summary>
+            internal void TickedGroup()
+            {
+                this.ActiveGroups++;
             }
 
             /// <summary>
@@ -295,20 +423,9 @@ namespace DVLightSniper.Mod.GameObjects
                 }
             }
 
-            internal TimingSection Begin(string name)
-            {
-                return new TimingSection(name, this.End);
-            }
-
-            private void End(string name, double elapsed)
-            {
-                double existingValue = this.timings.ContainsKey(name) ? this.timings[name] : 0.0;
-                this.timings[name] = existingValue + elapsed;
-            }
-
             public override string ToString()
             {
-                return $"Scanned: {this.Marks} (remaining {this.UpdatesRemaining}) Lights: {this.VisibleLights}/{this.ActiveLights} Meshes: {this.VisibleMeshes}/{this.ActiveMeshes} Decorations: {this.VisibleDecorations}/{this.ActiveDecorations} Orphans: {this.OrphanedObjects}";
+                return $"Scanned: {this.Marks} (remaining {this.UpdatesRemaining}) Groups: {this.ActiveGroups} Lights: {this.VisibleLights}/{this.ActiveLights} Meshes: {this.VisibleMeshes}/{this.ActiveMeshes} Decorations: {this.VisibleDecorations}/{this.ActiveDecorations} Orphans: {this.OrphanedObjects}";
             }
         }
 
@@ -373,7 +490,7 @@ namespace DVLightSniper.Mod.GameObjects
             private static readonly DebugOverlay.Section debugSpawned = DebugOverlay.AddSection("Spawned", Color.cyan);
             private static readonly DebugOverlay.Section debugDestroyed = DebugOverlay.AddSection("Destroyed", Color.red);
 
-            internal DateTime markTime = DateTime.Now;
+            internal DateTime markTime = DateTime.UtcNow;
 
             internal int SpawnedLights { get; private set; }
             internal int DestroyedLights { get; private set; }
@@ -383,6 +500,14 @@ namespace DVLightSniper.Mod.GameObjects
 
             internal int SpawnedDecorations { get; private set; }
             internal int DestroyedDecorations { get; private set; }
+
+            internal Stats()
+            {
+                if (CommandLineOption.DEBUG_NOSPAM)
+                {
+                    Stats.debugDestroyed.Summary = Stats.debugSpawned.Summary = true;
+                }
+            }
 
             internal void NotifySpawned(Spawner spawner)
             {
@@ -422,9 +547,9 @@ namespace DVLightSniper.Mod.GameObjects
 
             internal void Tick()
             {
-                if ((DateTime.Now - this.markTime).TotalMilliseconds > 10000)
+                if ((DateTime.UtcNow - this.markTime).TotalSeconds >= 10.0)
                 {
-                    this.markTime = DateTime.Now;
+                    this.markTime = DateTime.UtcNow;
                     if (this.SpawnedLights > 0 || this.SpawnedMeshes > 0 || this.DestroyedLights > 0 || this.DestroyedMeshes > 0)
                     {
                         LightSniper.Logger.Info("Lights(Spawned:{0} Destroyed:{1}) Meshes(Spawned:{2} Destroyed:{3}) Decorations(Spawned:{4} Destroyed:{5})",
@@ -440,11 +565,6 @@ namespace DVLightSniper.Mod.GameObjects
                 }
             }
         }
-
-        /// <summary>
-        /// Maximum duration allowed for a single update pass
-        /// </summary>
-        internal const double MAX_UPDATE_TIME_MS = 25.0;
 
         /// <summary>
         /// Time to trigger auto-save of regions
@@ -493,35 +613,52 @@ namespace DVLightSniper.Mod.GameObjects
         /// </summary>
         internal static int CurrentSecond { get; private set; }
 
+        /// <summary>
+        /// Debugging option which is enabled via -debug-toggle-caps which uses CAPS LOCK to toggle
+        /// culling for all spawners, mainly just for taking before/after screenshots
+        /// </summary>
+        internal static bool CullEverything { get; private set; }
+
+        /// <summary>
+        /// Dev option to enable special markers for orphan objects, requires markers to be enabled
+        /// </summary>
         internal static bool MarkOrphans { get; set; }
 
         private static DateTime killOrphanTime;
 
+        /// <summary>
+        /// Dev option to allow killing active orphans for the next 10 seconds once toggled true
+        /// </summary>
         internal static bool KillOrphans
         {
             get
             {
-                return DateTime.Now < SpawnerController.killOrphanTime;
+                return DateTime.UtcNow < SpawnerController.killOrphanTime;
             }
 
             set
             {
-                SpawnerController.killOrphanTime = value ? DateTime.Now + new TimeSpan(0, 0, 10) : DateTime.MinValue;
+                SpawnerController.killOrphanTime = value ? DateTime.UtcNow + new TimeSpan(0, 0, 10) : DateTime.MinValue;
             }
         }
 
         private static DateTime freeOrphanTime;
 
+        /// <summary>
+        /// Dev option to free (allow to spawn with misaligned parent) orphan objects for the next
+        /// 10 seconds once toggled true. This achieves the same thing as removing the hash from an
+        /// spawner's json and then reloading the group.
+        /// </summary>
         internal static bool FreeOrphans
         {
             get
             {
-                return DateTime.Now < SpawnerController.freeOrphanTime;
+                return DateTime.UtcNow < SpawnerController.freeOrphanTime;
             }
 
             set
             {
-                SpawnerController.freeOrphanTime = value ? DateTime.Now + new TimeSpan(0, 0, 10) : DateTime.MinValue;
+                SpawnerController.freeOrphanTime = value ? DateTime.UtcNow + new TimeSpan(0, 0, 10) : DateTime.MinValue;
             }
         }
 
@@ -569,9 +706,9 @@ namespace DVLightSniper.Mod.GameObjects
         private int undoBufferStep;
 
         /// <summary>
-        /// Time the last tick occurred
+        /// Tick timer
         /// </summary>
-        private DateTime lastTickTime = DateTime.Now;
+        private Stopwatch tickTimer = new Stopwatch();
 
         /// <summary>
         /// Time for the next allowed (expensive) update. If this value is in the future then only
@@ -579,25 +716,28 @@ namespace DVLightSniper.Mod.GameObjects
         /// mesh spawning are allowed. This value is advanced when an update ticket is depleted, and
         /// will be set to the current time + SpawnerController::BACKOFF_TIME_MS.
         /// </summary>
-        private DateTime nextUpdate = DateTime.Now;
+        private DateTime nextUpdate = DateTime.UtcNow;
 
         /// <summary>
         /// Time last auto-save was triggered
         /// </summary>
-        private DateTime autoSaveTime = DateTime.Now;
+        private DateTime autoSaveTime = DateTime.UtcNow;
 
         /// <summary>
         /// Update ticket
         /// </summary>
         private readonly UpdateTicket ticket = new UpdateTicket();
 
+        private readonly TimingSection autoSaveTimings = TimingSection.Get("autosave", TimingLevel.Basic);
+
         private double frameRate = 0.0;
         private int frameCounter;
-        private DateTime frameMarker = DateTime.Now;
+        private readonly Stopwatch frameTimer = new Stopwatch();
 
         public SpawnerController()
         {
             Directory.CreateDirectory(SpawnerController.RegionsDir);
+            SpawnerController.debugPerformance.RichText = true;
         }
 
         [UsedImplicitly]
@@ -631,6 +771,9 @@ namespace DVLightSniper.Mod.GameObjects
             {
                 this.BeginGroup(LightSniper.Settings.CurrentGroup);
             }
+
+            this.tickTimer.Start();
+            this.frameTimer.Start();
         }
 
         [UsedImplicitly]
@@ -639,6 +782,18 @@ namespace DVLightSniper.Mod.GameObjects
             foreach (Region region in this.regions.Values)
             {
                 region.Destroy();
+            }
+        }
+
+        [UsedImplicitly]
+        private void OnApplicationQuit()
+        {
+            if (LightSniper.Settings.cleanUpOnExit)
+            {
+                foreach (Region region in this.regions.Values)
+                {
+                    region.CleanUp();
+                }
             }
         }
 
@@ -674,11 +829,11 @@ namespace DVLightSniper.Mod.GameObjects
             }
 
             this.frameCounter++;
-            TimeSpan elapsed = DateTime.Now - this.frameMarker;
-            if (elapsed.TotalMilliseconds >= 1000.0)
+            if (this.frameTimer.ElapsedMilliseconds >= 1000)
             {
-                this.frameRate = this.frameCounter / elapsed.TotalSeconds;
-                this.frameMarker = DateTime.Now;
+                double totalSeconds = (double)this.frameTimer.ElapsedTicks / TimeSpan.TicksPerSecond;
+                this.frameRate = this.frameCounter / totalSeconds;
+                this.frameTimer.Restart();
                 this.frameCounter = 0;
             }
 
@@ -690,6 +845,8 @@ namespace DVLightSniper.Mod.GameObjects
                 SpawnerController.debugTime.Text = SpawnerController.CurrentTime.ToLongTimeString() + " (" + SpawnerController.CurrentSecond + ") (" + period + ")";
                 SpawnerController.debugTick.Text = this.ticket.ToString();
             }
+
+            SpawnerController.CullEverything = CommandLineOption.DEBUG_TOGGLE_CAPS && Control.IsKeyLocked(Keys.CapsLock);
         }
 
         [UsedImplicitly]
@@ -700,15 +857,15 @@ namespace DVLightSniper.Mod.GameObjects
 
         private void Tick()
         {
-            if ((DateTime.Now - this.lastTickTime).TotalSeconds < 1.0 / LightSniper.Settings.DesiredTickRate)
+            double windowMin = (1000.0 / LightSniper.Settings.DesiredTickRate) * 0.75;
+            if (this.tickTimer.ElapsedMilliseconds < windowMin)
             {
                 return;
             }
-            this.lastTickTime = DateTime.Now;
 
-            bool allowUpdate = DateTime.Now > this.nextUpdate;
             Vector2 playerPosition = PlayerManager.GetWorldAbsolutePlayerPosition().AsMapLocation();
-            this.ticket.Begin(playerPosition, allowUpdate ? LightSniper.Settings.AllowedUpdates : 0);
+            bool allowUpdate = DateTime.UtcNow > this.nextUpdate;
+            this.ticket.Begin(playerPosition, allowUpdate ? LightSniper.Settings.AllowedUpdates : 0, LightSniper.Settings.AllowedTimeSlice);
 
             if (DebugOverlay.Active)
             {
@@ -728,25 +885,26 @@ namespace DVLightSniper.Mod.GameObjects
 
             if (this.ticket.UpdatesRemaining <= 0 && allowUpdate)
             {
-                this.nextUpdate = DateTime.Now + TimeSpan.FromMilliseconds(LightSniper.Settings.BackoffTimeMs);
+                this.nextUpdate = DateTime.UtcNow + TimeSpan.FromMilliseconds(LightSniper.Settings.BackoffTimeMs);
             }
 
+            this.ticket.End();
             this.stats.Tick();
 
-            if ((DateTime.Now - this.autoSaveTime).TotalSeconds > SpawnerController.AUTOSAVE_INTERVAL_SECONDS)
+            if ((DateTime.UtcNow - this.autoSaveTime).TotalSeconds > SpawnerController.AUTOSAVE_INTERVAL_SECONDS)
             {
-                UpdateTicket.TimingSection section = this.ticket.Begin("autosave");
-                this.autoSaveTime = DateTime.Now;
+                this.autoSaveTimings.Start();
+                this.autoSaveTime = DateTime.UtcNow;
                 foreach (Region region in this.regions.Values)
                 {
                     region.AutoSave();
                 }
-                section.End();
+                this.autoSaveTimings.End();
             }
 
             if (DebugOverlay.Active)
             {
-                double updateTime = (DateTime.Now - this.ticket.StartTime).TotalMilliseconds;
+                double updateTime = this.ticket.UpdateMilliseconds;
                 string cullingState = LightSniper.Settings.EnableDistanceCulling && !SpawnerController.IsFreeCamActive ? "Enabled " + LightSniper.Settings.DistanceCullingRadius + "m" : "Disabled";
                 SpawnerController.debugPerformance.Text = $"FPS: {this.frameRate:F1} Update: {updateTime:F3}ms Culling: {cullingState} {(SpawnerController.IsFreeCamActive ? "(FreeCam) " : "")}{this.ticket.Timings}";
                 if (updateTime > (LoadingScreenManager.IsLoading ? 500.0F : 50.0F))
@@ -754,6 +912,9 @@ namespace DVLightSniper.Mod.GameObjects
                     LightSniper.Logger.Error("LightSniper update took {0:F3}ms!", updateTime);
                 }
             }
+
+            AssetLoader.Tick();
+            this.tickTimer.Restart();
         }
 
         /// <summary>
@@ -763,7 +924,16 @@ namespace DVLightSniper.Mod.GameObjects
         /// <returns>Hit region, forced region or fallback (wilderness) region</returns>
         internal Region FindRegion(RaycastHit hitInfo)
         {
-            return this.forceRegion ?? this.FindRegion((hitInfo.point - WorldMover.currentMove).AsMapLocation());
+            Vector2 worldLocation = (hitInfo.point - WorldMover.currentMove).AsMapLocation();
+
+            // If region is forced, only return the forced region if inside the spawn radius for the
+            // region otherwise we can end up sniping spawners which will never spawn
+            if (this.forceRegion != null && this.forceRegion.Contains(worldLocation, false, true))
+            {
+                return this.forceRegion;
+            }
+
+            return this.forceRegion ?? this.FindRegion(worldLocation);
         }
 
         /// <summary>
@@ -877,22 +1047,33 @@ namespace DVLightSniper.Mod.GameObjects
         }
 
         /// <summary>
-        /// Unpack the default regions if they don't exist already
+        /// Enable or disable the specified group in all regions
         /// </summary>
-        /// <returns></returns>
-        internal bool InstallDefaultPack()
+        /// <param name="yardId">Region yard id or * for all regions</param>
+        /// <param name="groupName">Group name</param>
+        /// <param name="priority">New priority for the group</param>
+        internal void SetGroupPriority(string yardId, string groupName, Priority priority)
         {
-            if (PackLoader.UnpackBuiltin())
+            foreach (Region region in this.regions.Values)
             {
-                foreach (Region region in this.regions.Values)
+                if (yardId == "*" || yardId.Equals(region.YardID, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    region.Reload();
+                    region.SetGroupPriority(groupName, priority);
                 }
-
-                return true;
             }
 
-            return false;
+            Terminal.Log(TerminalLogType.Message, $"Set priority to {priority} for {(groupName == "*" ? "all groups" : $"for group {groupName}")}");
+        }
+
+        /// <summary>
+        /// Reload all regions
+        /// </summary>
+        internal void Reload()
+        {
+            foreach (Region region in this.regions.Values)
+            {
+                region.Reload();
+            }
         }
 
         /// <summary>
@@ -959,7 +1140,7 @@ namespace DVLightSniper.Mod.GameObjects
             }
 
             MeshComponent meshBehaviour = hitInfo.transform?.gameObject?.GetComponentInParent<MeshComponent>();
-            if (meshBehaviour != null && meshBehaviour.Spawner.Editable)
+            if (meshBehaviour != null) // && meshBehaviour.Spawner.Editable)
             {
                 hitMesh = meshBehaviour.Spawner;
             }
@@ -1054,7 +1235,7 @@ namespace DVLightSniper.Mod.GameObjects
             }
             else if (template.HasLights)
             {
-                return this.SnipeLight(signalOrigin, template.Lights[randomLightIndex], template.SnipeOffset);
+                return this.SnipeLight(signalOrigin, template, randomLightIndex);
             }
 
             return new ActionResult(false, "Selected template is empty");
@@ -1147,7 +1328,7 @@ namespace DVLightSniper.Mod.GameObjects
             {
                 if (template.ReadOnly)
                 {
-                    template.ExtractAssetBundles();
+                    template.ExtractAssets();
                 }
 
                 Region region = this.FindRegion(hitInfo);
@@ -1206,10 +1387,17 @@ namespace DVLightSniper.Mod.GameObjects
                 int numOffsets = lightOffsets.Count;
                 if (numOffsets == 0)
                 {
+                    this.undoBufferStep++;
                     return ActionResult.SUCCESS;
                 }
 
                 int numLights = template.Lights.Count;
+                if (numLights == 0)
+                {
+                    this.undoBufferStep++;
+                    return new ActionResult(true, $"Mesh has {numOffsets} light offset(s) but no lights are defined", Color.yellow);
+                }
+
                 for (int offsetIndex = 0; offsetIndex < numOffsets; offsetIndex++)
                 {
                     Vector3 lightOffset = lightOffsets[offsetIndex];
@@ -1239,10 +1427,12 @@ namespace DVLightSniper.Mod.GameObjects
         /// Snipe a light
         /// </summary>
         /// <param name="signalOrigin"></param>
-        /// <param name="lightProperties"></param>
-        /// <param name="snipeOffset"></param>
-        internal ActionResult SnipeLight(Transform signalOrigin, LightProperties lightProperties, float snipeOffset)
+        /// <param name="template"></param>
+        /// <param name="randomLightIndex"></param>
+        internal ActionResult SnipeLight(Transform signalOrigin, LightTemplate template, int randomLightIndex)
         {
+            LightProperties lightProperties = template.Lights[randomLightIndex];
+
             if (lightProperties == null || !SpawnerController.CastRay(signalOrigin, out RaycastHit hitInfo))
             {
                 return new ActionResult(false, "No Target Found");
@@ -1250,11 +1440,16 @@ namespace DVLightSniper.Mod.GameObjects
 
             try
             {
+                if (template.ReadOnly)
+                {
+                    template.ExtractAssets();
+                }
+
                 Region region = this.FindRegion(hitInfo);
 
                 Transform transformParent = SpawnerController.FindParentTransform(hitInfo, region.Anchor, region.CurrentGroup.Name);
                 string parentPath = transformParent?.GetObjectPath() ?? "";
-                Vector3 transformPosition = hitInfo.point + (hitInfo.normal * snipeOffset);
+                Vector3 transformPosition = hitInfo.point + (hitInfo.normal * template.SnipeOffset);
                 Vector3 localPosition = transformParent?.InverseTransformPoint(transformPosition) ?? transformPosition.AsWorldCoordinate();
 
                 LightSniper.Logger.Info("Sniping light with parent: " + (transformParent?.GetObjectPath() ?? "GLOBAL") + " at " + localPosition);

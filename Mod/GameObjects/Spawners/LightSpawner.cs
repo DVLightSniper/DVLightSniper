@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,11 +49,25 @@ using UnityEngine;
 
 namespace DVLightSniper.Mod.GameObjects.Spawners
 {
+    /// <summary>
+    /// A Spawner which spawns a single light source. The main duty of this class after the light is
+    /// spawned is managing the dutycycle of the light. This spawner also identifies if the light is
+    /// parented to a mesh spawner and adds itself to the mesh spawner to allow behaviours such as
+    /// source control and delete-mesh-deletes-lights when editing. Applying the duty cycle to the
+    /// light and displaying the billboard sprite when editing are managed by attaching a
+    /// LightComponent to the spawned object.
+    /// </summary>
     [DataContract]
     internal class LightSpawner : Spawner, ISpriteOwner
     {
+        /// <summary>
+        /// Light name, computed onces
+        /// </summary>
         private string name;
 
+        /// <summary>
+        /// The name of this light
+        /// </summary>
         internal override string Name
         {
             get
@@ -61,9 +76,15 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Stored properties for the light
+        /// </summary>
         [DataMember(Name = "properties", Order = 4)]
         private LightProperties properties;
 
+        /// <summary>
+        /// Light properties to apply when the light is spawned
+        /// </summary>
         internal LightProperties Properties
         {
             get
@@ -79,20 +100,31 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Stored "on" state, computed from duty cycle
+        /// </summary>
         private bool on = true;
 
         internal bool On
         {
             get
             {
-                return this.on || this.Designing;
+                return (!this.Inhibit && this.on) || this.Designing;
             }
         }
+
+        /// <summary>
+        /// An override "off" switch so that certain behaviours can override the duty cycle
+        /// </summary>
+        internal bool Inhibit { get; set; }
 
         public bool ShowSprites { get { return this.Selected || this.Region.Controller.ShowSprites; } }
 
         private int spriteIndex;
 
+        /// <summary>
+        /// Used when editing lights to determine the sprite to display on the light
+        /// </summary>
         public int SpriteIndex
         {
             get
@@ -105,10 +137,19 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// True if this light is being designed. Changes the light to always be on.
+        /// </summary>
         public bool Designing { get; set; }
 
+        /// <summary>
+        /// Computed duty cycle
+        /// </summary>
         private DutyCycle dutyCycle = DutyCycle.ALWAYS;
 
+        /// <summary>
+        /// If the light is parented to a mesh, stored reference to the parent
+        /// </summary>
         private MeshSpawner parentMesh;
 
         [JsonConstructor]
@@ -119,6 +160,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.DisableDistanceCulling = this.properties.NeverCull;
         }
 
+        /// <summary>
+        /// Tick ths light when active, updates the duty cycle
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <param name="visible"></param>
         protected override void Tick(UpdateTicket ticket, bool visible)
         {
             ticket.TickedLight(visible);
@@ -129,7 +175,12 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
-        protected override void Spawn(UpdateTicket ticket, GameObject parent)
+        /// <summary>
+        /// The spawner successfully located the parent transform, spawn the light
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <param name="parent"></param>
+        protected override bool Spawn(UpdateTicket ticket, GameObject parent)
         {
             GameObject lightHolder = this.GameObject;
             if (lightHolder == null)
@@ -149,13 +200,23 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.Configure(lightHolder);
             this.Region.Controller.NotifySpawned(this);
             ticket.Mark();
+            return true;
         }
 
+        /// <summary>
+        /// Used when any mesh is deleted to determine whether it was the parent 
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
         internal bool IsParentDeleted(MeshSpawner mesh)
         {
-            return this.ParentPath.Contains(mesh.Name) && mesh.Deleted;
+            return (this.parentMesh != null && this.parentMesh.Deleted) || (this.ParentPath.Contains(mesh.Name) && mesh.Deleted);
         }
 
+        /// <summary>
+        /// Apply the specified light properties to this light
+        /// </summary>
+        /// <param name="properties"></param>
         internal void Paint(LightProperties properties)
         {
             this.Properties = properties;
@@ -165,6 +226,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Apply configuration from this spawner onto the spawned GameObject
+        /// </summary>
+        /// <param name="lightHolder"></param>
         internal override void Configure(GameObject lightHolder)
         {
             if (lightHolder == null)
@@ -173,9 +238,6 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
 
             this.SetGameObject(lightHolder);
-
-            // Vector2 worldCoord = lightHolder.transform.AsWorldCoordinate();
-            // LightSniper.Logger.Debug("Configuring {0} at {1:F1}, {2:F1}", this, worldCoord.x, worldCoord.y);
 
             DutyCycle configuredDutyCycle = this.Properties.DutyCycle;
             if (!configuredDutyCycle.Equals(this.dutyCycle))
@@ -195,15 +257,20 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 this.Properties.Configure(light);
                 this.ConfigureCorona(lightHolder);
 
-                MeshComponent mountedOnMesh = lightHolder.GetComponentInParent<MeshComponent>();
-                if (mountedOnMesh?.Spawner != null)
+                // GetComponentInParent would be neater but that fails if the object is currently
+                // not active (which may be the case if it's outside the culling radius)
+                MeshComponent[] mountedOnMesh = lightHolder.GetComponentsInParent<MeshComponent>(true);
+                if (mountedOnMesh.Length > 0 && mountedOnMesh[0].Spawner != null)
                 {
-                    this.parentMesh = mountedOnMesh.Spawner;
+                    this.parentMesh = mountedOnMesh[0].Spawner;
                     this.parentMesh.Accept(this);
                 }
 
+                // We only want the collider to work with the laser pointer
                 lightHolder.layer = LayerMask.NameToLayer(Layers.Laser_Pointer_Target);
 
+                // Add collider so we can target the light directly with the comms radio if it's
+                // floating in space
                 BoxCollider editCollider = lightHolder.AddComponent<BoxCollider>();
                 editCollider.size = new Vector3(0.25F, 0.25F, 0.25F);
                 editCollider.center = Vector3.zero;

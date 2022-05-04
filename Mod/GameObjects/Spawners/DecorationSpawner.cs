@@ -48,11 +48,42 @@ using UnityEngine;
 
 namespace DVLightSniper.Mod.GameObjects.Spawners
 {
+    /// <summary>
+    /// A spawner which spawns a prefab onto an existing mesh in the world to "decorate" it. We
+    /// mainly use this to apply lit windows to existing building meshes in the world. When spawning
+    /// objects via the comms radio the user does not have any way to change the transform and the
+    /// decoration is always applied with a local offset of 0,0,0 and zero rotation. Setting these
+    /// offsets in the json is supported however.
+    /// 
+    /// Normal decorations are spawned in the world and simply parented to the target transform. It
+    /// is also possible to spawn decorations which copy materials from themselves onto the target
+    /// meshes, using MaterialAssigments.
+    /// 
+    /// Decorations also manage dutycycles in the same way that lights do, with an attached
+    /// DecorationComponent forming the link between the spawned object and this spawner.
+    /// 
+    /// Since it doesn't make sense to have 2 copies of the same decoration on a single target, we
+    /// also attach a DecorationsComponent to the target object which keeps track of applied
+    /// decorations in order to manage exclusivity.
+    /// </summary>
     [DataContract]
-    internal class DecorationSpawner : Spawner, ISpriteOwner
+    internal class DecorationSpawner : Spawner
     {
+        /// <summary>
+        /// Number of times to attempt to load the asset before giving up
+        /// </summary>
+        private const int MAX_LOAD_ATTEMPTS = 4;
+
+        /// <summary>
+        /// Number of seconds to wait between load attempts when loading fails
+        /// </summary>
+        private const int RELOAD_ATTEMPT_TIME_SECONDS = 60;
+
         private string name;
 
+        /// <summary>
+        /// The name for this decoration
+        /// </summary>
         internal override string Name
         {
             get
@@ -61,12 +92,21 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// The 
+        /// </summary>
         [DataMember(Name = "id", Order = 4)]
         internal string Id { get; private set; }
 
+        /// <summary>
+        /// Stored properties for this decoration
+        /// </summary>
         [DataMember(Name = "properties", Order = 5)]
         private MeshProperties properties;
 
+        /// <summary>
+        /// Properties for this decoration
+        /// </summary>
         internal MeshProperties Properties
         {
             get
@@ -87,6 +127,9 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
         private DutyCycle dutyCycle;
 
+        /// <summary>
+        /// The duty cycle for this decoration
+        /// </summary>
         internal DutyCycle DutyCycle
         {
             get
@@ -100,31 +143,32 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        /// <summary>
+        /// Whether the decoration is on, determined by the duty cycle
+        /// </summary>
         internal bool On { get; private set; }
 
-        public bool ShowSprites { get { return this.Selected || this.Region.Controller.ShowSprites; } }
-
-        private int spriteIndex;
-
-        public int SpriteIndex
-        {
-            get
-            {
-                return this.spriteIndex + (this.On ? 0 : 8);
-            }
-            set
-            {
-                this.spriteIndex = value;
-            }
-        }
-
+        /// <summary>
+        /// Keep track of failed asset loads so we can retry a few times and give up if necessary
+        /// </summary>
         private DateTime lastLoadAttempt;
         private int failedLoadAttempts;
 
+        /// <summary>
+        /// Flag which indicates we tried to load the asset but were unsuccessful
+        /// </summary>
         internal bool MissingResource { get; private set; }
 
+        /// <summary>
+        /// We attempted to apply the decoration but it was already applied by another spawner. This
+        /// can happen if the same spawner exists in multiple groups.
+        /// </summary>
         internal bool Duplicate { get; private set; }
 
+        /// <summary>
+        /// Unlike other spawners, we keep track of the parent gameobject because we want to manage
+        /// the DecorationsComponent to register and unregister ourself
+        /// </summary>
         internal GameObject Parent { get; private set; }
 
         [JsonConstructor]
@@ -145,11 +189,16 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
-        protected override void Spawn(UpdateTicket ticket, GameObject parent)
+        /// <summary>
+        /// The spawner successfully located the parent transform, attempt to spawn the decoration
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <param name="parent"></param>
+        protected override bool Spawn(UpdateTicket ticket, GameObject parent)
         {
-            if ((this.MissingResource || this.Duplicate) && (this.failedLoadAttempts > 4 || (DateTime.Now - this.lastLoadAttempt).TotalSeconds < 60))
+            if ((this.MissingResource || this.Duplicate) && (this.failedLoadAttempts > DecorationSpawner.MAX_LOAD_ATTEMPTS || (DateTime.UtcNow - this.lastLoadAttempt).TotalSeconds < DecorationSpawner.RELOAD_ATTEMPT_TIME_SECONDS))
             {
-                return;
+                return false;
             }
 
             this.Parent = parent;
@@ -157,23 +206,25 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             DecorationsComponent decorations = this.Parent.GetOrCreate<DecorationsComponent>();
             if (decorations.Has(this.Id) != DecorationsComponent.Match.None)
             {
+                // Decoration is already applied
                 this.Duplicate = true;
-                return;
+                return false;
             }
 
+            // Register ourself with the parent
             decorations.Add(this);
 
             GameObject decorationHolder = this.GameObject;
             if (decorationHolder == null)
             {
-                this.lastLoadAttempt = DateTime.Now;
+                this.lastLoadAttempt = DateTime.UtcNow;
 
-                GameObject meshTemplate = AssetLoader.Meshes.Load<GameObject>(this.Properties.AssetBundleName, this.properties.AssetName);
+                GameObject meshTemplate = AssetLoader.Meshes.Load<GameObject>(this.Properties.AssetBundleName, this.Properties.AssetName);
                 if (meshTemplate == null)
                 {
                     this.MissingResource = true;
                     this.failedLoadAttempts++;
-                    return;
+                    return false;
                 }
 
                 this.MissingResource = false;
@@ -184,6 +235,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 decorationHolder.transform.parent = parent.transform;
                 decorationHolder.transform.position = parent.transform.position;
                 decorationHolder.transform.rotation = parent.transform.rotation;
+                decorationHolder.transform.localScale = Vector3.one;
                 decorationHolder.transform.localPosition += this.LocalPosition;
 
                 DecorationComponent behaviour = decorationHolder.GetComponent<DecorationComponent>();
@@ -206,6 +258,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.Configure(decorationHolder);
             this.Region.Controller.NotifySpawned(this);
             ticket.Mark(1);
+            return true;
         }
 
         internal override bool Delete()

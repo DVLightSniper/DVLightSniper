@@ -77,7 +77,7 @@ namespace DVLightSniper.Mod.Components
             set
             {
                 this.highlighted = value;
-                this.highlightTime = DateTime.Now;
+                this.highlightTime = DateTime.UtcNow;
             }
         }
 
@@ -118,7 +118,7 @@ namespace DVLightSniper.Mod.Components
         [UsedImplicitly]
         private void Update()
         {
-            if (this.highlightApplied && (DateTime.Now - this.highlightTime).TotalMilliseconds > 1000)
+            if (this.highlightApplied && (DateTime.UtcNow - this.highlightTime).TotalMilliseconds > 1000)
             {
                 this.highlighted = false;
             }
