@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -184,13 +185,42 @@ namespace DVLightSniper.Mod
             return Vector3.zero;
         }
 
+        public static MeshOrientation GetMeshOrientation(this string prefabName)
+        {
+            if (prefabName != null)
+            {
+                prefabName = prefabName.ToLowerInvariant();
+                if (prefabName.Contains("wall"))
+                {
+                    return MeshOrientation.Wall;
+                }
+
+                if (prefabName.Contains("ceiling"))
+                {
+                    return MeshOrientation.Ceiling;
+                }
+            }
+
+            return MeshOrientation.Floor;
+        }
+
         public static MeshOrientation GetMeshOrientation(this RaycastHit hitInfo)
         {
-            float upFactor = Vector3.Dot(hitInfo.normal, Vector3.up);
+            return Extensions.GetMeshOrientationFromNormal(hitInfo.normal);
+        }
 
-            float xFactor = Math.Abs(Vector3.Dot(hitInfo.normal, Vector3.right));
+        public static MeshOrientation GetMeshOrientation(this Vector3 direction)
+        {
+            return Extensions.GetMeshOrientationFromNormal(direction.normalized);
+        }
+
+        private static MeshOrientation GetMeshOrientationFromNormal(Vector3 normal)
+        {
+            float upFactor = Vector3.Dot(normal, Vector3.up);
+
+            float xFactor = Math.Abs(Vector3.Dot(normal, Vector3.right));
             float yFactor = Math.Abs(upFactor);
-            float zFactor = Math.Abs(Vector3.Dot(hitInfo.normal, Vector3.forward));
+            float zFactor = Math.Abs(Vector3.Dot(normal, Vector3.forward));
 
             return yFactor < Math.Max(xFactor, zFactor) ? MeshOrientation.Wall : (upFactor > 0 ? MeshOrientation.Floor : MeshOrientation.Ceiling);
         }
@@ -242,6 +272,40 @@ namespace DVLightSniper.Mod
         public static string ConformSlashes(this string path)
         {
             return path?.Replace('/', '\\');
+        }
+
+        public static string GetSha1Hash(this string file)
+        {
+            try
+            {
+                using (var cryptoProvider = new SHA1CryptoServiceProvider())
+                {
+                    using (var fs = new FileStream(file, FileMode.Open))
+                    {
+                        byte[] sha1 = cryptoProvider.ComputeHash(fs);
+                        return BitConverter.ToString(sha1);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
+        public static float Clamp(this float value, float min, float max)
+        {
+            return Mathf.Min(Mathf.Max(value, min), max);
+        }
+
+        public static int Clamp(this int value, int min, int max)
+        {
+            return Math.Min(Math.Max(value, min), max);
+        }
+
+        public static string Clamp(this string value, int max)
+        {
+            return value?.Length > max ? value.Substring(0, max) : value;
         }
     }
 }

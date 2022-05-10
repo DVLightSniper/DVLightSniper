@@ -318,6 +318,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.SetGameObject(null);
         }
 
+        public override void OnSaving()
+        {
+            this.Properties?.OnSaving();
+        }
+
         public override string ToString()
         {
             return $"Light(Name={this.Name} Properties={this.Properties})";

@@ -362,6 +362,8 @@ namespace DVLightSniper.Mod.GameObjects.Library
                 helper.transform.rotation = Quaternion.LookRotation(LightSniper.PlayerDirection, Vector3.up);
 
                 this.distanceLabelText.text = $"{distance:F1}m";
+                this.distanceLabelText.color = this.colour;
+                this.distanceLabelText.faceColor = this.colour;
             }
 
             internal override void Place(GameObject helper)

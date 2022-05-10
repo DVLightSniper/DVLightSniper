@@ -28,6 +28,8 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Windows.Forms.VisualStyles;
 
+using CommandTerminal;
+
 using DV;
 
 using DVLightSniper.Mod.Components;
@@ -211,6 +213,8 @@ namespace DVLightSniper.Mod.GameObjects
         public bool ShowSprites { get; private set;  }
         public int SpriteIndex { get; private set; }
 
+        internal static bool TemplateReloadRequested { get; set; }
+
         private readonly System.Random random = new System.Random();
 
         private int lastSelectedTemplateIndex, lastSelectedDecorationIndex;
@@ -232,18 +236,18 @@ namespace DVLightSniper.Mod.GameObjects
             this.ReloadTemplates();
         }
 
-        internal void ReloadTemplates()
+        private void ReloadTemplates()
         {
             try
             {
                 if (CommandLineOption.RESET_TEMPLATES)
                 {
-                    File.Delete(Path.Combine(LightSniper.Path, "Resources", "templates.lights.json"));
+                    File.Delete(Path.Combine(LightSniper.ResourcesPath, "templates.lights.json"));
                 }
 
                 if (CommandLineOption.RESET_DECORATION_TEMPLATES)
                 {
-                    File.Delete(Path.Combine(LightSniper.Path, "Resources", "templates.decorations.json"));
+                    File.Delete(Path.Combine(LightSniper.ResourcesPath, "templates.decorations.json"));
                 }
 
             }
@@ -254,7 +258,7 @@ namespace DVLightSniper.Mod.GameObjects
 
             try
             {
-                this.templates = new LightTemplates(LightSniper.Path, "Resources", "templates.lights.json");
+                this.templates = new LightTemplates(LightSniper.ResourcesPath, "templates.lights.json");
             }
             catch (Exception e)
             {
@@ -263,7 +267,7 @@ namespace DVLightSniper.Mod.GameObjects
 
             try
             {
-                this.decorationTemplates = new DecorationTemplates(LightSniper.Path, "Resources", "templates.decorations.json");
+                this.decorationTemplates = new DecorationTemplates(LightSniper.ResourcesPath, "templates.decorations.json");
             }
             catch (Exception e)
             {
@@ -350,6 +354,14 @@ namespace DVLightSniper.Mod.GameObjects
                 this.SelectedMesh = null;
                 this.HighlightedObject = null;
                 return;
+            }
+
+            if (CommsRadioLightSniper.TemplateReloadRequested)
+            {
+                this.ReloadTemplates();
+                Terminal.Log(TerminalLogType.Message, "Templates reloaded from disk");
+                CommsRadioLightSniper.TemplateReloadRequested = false;
+                this.holoDisplay.GetComponent<TimedMessageComponent>().SetText("Templates reloaded from disk", Color.green);
             }
 
             this.helpers.SignalOrigin = this.signalOrigin;

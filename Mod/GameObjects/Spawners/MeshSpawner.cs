@@ -110,9 +110,19 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
             set
             {
+                if (this.properties != null)
+                {
+                    this.properties.Changed -= this.OnPropertiesChanged;
+                }
+
                 this.properties = value;
                 this.Apply();
                 this.Group?.Save();
+
+                if (this.properties != null)
+                {
+                    this.properties.Changed += this.OnPropertiesChanged;
+                }
             }
         }
 
@@ -169,6 +179,12 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             : base(parentPath, localPosition, rotation)
         {
             this.properties = properties;
+            this.properties.Changed += this.OnPropertiesChanged;
+        }
+
+        private void OnPropertiesChanged(string key)
+        {
+            this.Group?.Save();
         }
 
         protected override void Tick(UpdateTicket ticket, bool visible)
@@ -272,8 +288,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
             foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
             {
-                PrefabBehaviourAttribute prefabBehaviour = type.GetCustomAttribute<PrefabBehaviourAttribute>();
-                if (prefabBehaviour != null && prefabBehaviour.Matches(this.Properties))
+                PrefabComponentAttribute prefabComponent = type.GetCustomAttribute<PrefabComponentAttribute>();
+                if (prefabComponent != null && prefabComponent.Matches(this.Properties))
                 {
                     meshHolder.AddComponent(type);
                 }
@@ -330,6 +346,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                     this.masterLight = this.childLights.Count > 0 ? this.childLights[0] : null;
                 }
             }
+        }
+
+        public override void OnSaving()
+        {
+            this.Properties?.OnSaving(true);
         }
 
         public override string ToString()

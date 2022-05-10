@@ -235,7 +235,6 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
                 decorationHolder.transform.parent = parent.transform;
                 decorationHolder.transform.position = parent.transform.position;
                 decorationHolder.transform.rotation = parent.transform.rotation;
-                decorationHolder.transform.localScale = Vector3.one;
                 decorationHolder.transform.localPosition += this.LocalPosition;
 
                 DecorationComponent behaviour = decorationHolder.GetComponent<DecorationComponent>();
@@ -314,6 +313,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
 
 
             this.Region.Controller.NotifyDestroyed(this);
+        }
+
+        public override void OnSaving()
+        {
+            this.Properties?.OnSaving(false);
         }
 
         public override string ToString()

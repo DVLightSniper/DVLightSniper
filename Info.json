@@ -1,7 +1,9 @@
 {
-  "Id": "DVLightSniper",
-  "DisplayName": "LightSniper",
-  "Author": "Mumfrey",
-  "Version": "0.1.1",
-  "EntryMethod": "DVLightSniper.Main.Load"
+    "Id": "DVLightSniper",
+    "DisplayName": "LightSniper",
+    "Author": "Mumfrey",
+    "Version": "0.1.2",
+    "EntryMethod": "DVLightSniper.Main.Load",
+    "HomePage": "https://www.nexusmods.com/derailvalley/mods/428",
+    "Repository": "https://dvlightsniper.eq2.co.uk/repository.json"
 }

@@ -113,14 +113,30 @@ namespace DVLightSniper.Mod.Components
             }
         }
 
+        /// <summary>
+        /// Name of the corona sprite to apply
+        /// </summary>
         internal String Corona { get; set; }
 
+        /// <summary>
+        /// Currently applied corona, compared with Corona property to update corona sprite when
+        /// changed by the user (eg. via designer)
+        /// </summary>
         private string currentCorona;
 
+        /// <summary>
+        /// Corona scale
+        /// </summary>
         internal float Scale { get; set; } = 1.0F;
 
+        /// <summary>
+        /// Corona visibility range, controls the overall scaling of the corona based on range too
+        /// </summary>
         internal float Range { get; set; } = 100.0F;
 
+        /// <summary>
+        /// The maximum distance the corona is visible from, never less than 25m
+        /// </summary>
         private float MaxDistance
         {
             get
@@ -129,6 +145,10 @@ namespace DVLightSniper.Mod.Components
             }
         }
 
+        /// <summary>
+        /// The distance from the source at which the corona reaches its maximum size, which is
+        /// currently 30% of Range, or 7.5m whichever is larger
+        /// </summary>
         private float PeakDistance
         {
             get
@@ -137,18 +157,25 @@ namespace DVLightSniper.Mod.Components
             }
         }
 
+        /// <summary>
+        /// Reference to the light spawner which created the light the corona is attached to
+        /// </summary>
         internal LightSpawner Spawner { get; set; }
 
+        // Texture and material
         private AssetLoader.TextureHandle texture;
         private Material material;
         private SpriteRenderer spriteRenderer;
 
+        // Fade when the the source is occluded, measured in frames rather than with a real timer
+        // since it's only aesthetic
         private int fadeOutFrames = 0;
 
         private bool failedToLoadShader;
 
         private readonly TimingSection timings = TimingSection.Get("corona", TimingLevel.Others);
 
+        // Position tracking and timing, so we don't update culling when we don't need to
         private Vector3 lastCameraPosition;
         private Stopwatch lastCameraComputeTime;
         private float lastCameraDistance;

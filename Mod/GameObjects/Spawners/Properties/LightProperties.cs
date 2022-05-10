@@ -128,6 +128,14 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
             return light;
         }
 
+        public void OnSaving()
+        {
+            if (string.IsNullOrEmpty(this.Corona?.Sprite))
+            {
+                this.Corona = null;
+            }
+        }
+
         public override string ToString()
         {
             return $"LightProperties(Type={this.Type} Intensity={this.Intensity:F3} Range={this.Range:F3} Colour={this.Colour} Corona={this.Corona} DutyCycle={this.dutyCycleDef})";

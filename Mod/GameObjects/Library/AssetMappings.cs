@@ -27,10 +27,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 using DVLightSniper.Mod.Storage;
+
+using UnityEngine;
 
 namespace DVLightSniper.Mod.GameObjects.Library
 {
@@ -48,6 +51,9 @@ namespace DVLightSniper.Mod.GameObjects.Library
         [DataMember(Name = "mappings", Order = 1)]
         private Dictionary<string, string> mappings = new Dictionary<string, string>();
 
+        // for internal mappings
+        private readonly Dictionary<string, string> hashes = new Dictionary<string, string>();
+
         internal static AssetMappings Load(params string[] path)
         {
             AssetMappings mappings = JsonStorage.Load<AssetMappings>(path);
@@ -62,22 +68,59 @@ namespace DVLightSniper.Mod.GameObjects.Library
 
         private void AddDefaults()
         {
-            bool saveRequired = false;
+            bool dirty = false;
 
-            // Add mappings for version 1 if saved version is lower
-            if (this.version < 1)
-            {
-                this["meshes_decoration_lights.assetbundle"] = "meshes_decoration_lights_1.0.assetbundle";
-                this["meshes_lampposts.assetbundle"] = "meshes_lampposts_1.0.assetbundle";
-                this["meshes_levelcrossings.assetbundle"] = "meshes_levelcrossings_1.0.assetbundle";
-                this.version = 1;
-                saveRequired = true;
-            }
+            int oldVersion = this.version;
 
-            if (saveRequired)
+            // Version 1 mappings
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.0.assetbundle", "68-D9-83-6A-9A-21-D6-AE-F0-CC-D7-0F-09-D1-85-AD-CF-BF-19-0E");
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_lampposts.assetbundle",         "meshes_lampposts_1.0.assetbundle",         "20-03-19-45-FA-41-12-1B-43-29-BC-77-1A-DC-BE-B9-5A-4A-AD-08");
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.0.assetbundle",    "4D-16-ED-CA-80-CE-BD-86-2F-3E-48-86-12-7E-C0-1E-1C-A2-CB-EF");
+
+            // Version 2 mappings
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.1.assetbundle", null);
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.1.assetbundle",    null);
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_signs.assetbundle",             "meshes_signs_1.0.assetbundle",             null);
+
+            if (dirty)
             {
                 this.Save();
             }
+        }
+
+        private bool InternalMapping(int oldVersion, int version, AssetLoader assetLoader, string assetBundleName, string versionedAssetBundleName, string sha1hash)
+        {
+            bool dirty = false;
+
+            if (oldVersion < version)
+            {
+                // Clean up the old asset bundle if the sha1 matches the known version (eg. the user
+                // hasn't modified the file in the mean time)
+                if (this.mappings.ContainsKey(assetBundleName))
+                {
+                    string existing = this.mappings[assetBundleName];
+                    if (this.hashes.ContainsKey(existing))
+                    {
+                        string existingFile = Path.Combine(assetLoader.Dir, existing);
+                        if (File.Exists(existingFile) && existingFile.GetSha1Hash() == this.hashes[existing])
+                        {
+                            File.Delete(existingFile);
+                            this.mappings.Remove(assetBundleName);
+                        }
+                    }
+                }
+
+                this.mappings[assetBundleName] = versionedAssetBundleName;
+                this.version = version;
+                dirty = true;
+            }
+
+            if (sha1hash != null)
+            {
+                this.hashes[versionedAssetBundleName] = sha1hash;
+            }
+
+            return dirty;
         }
 
         internal string this[string assetBundleName]

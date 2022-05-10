@@ -168,8 +168,9 @@
     <Compile Include="Mod\Components\MeshComponent.cs" />
     <Compile Include="Mod\Components\DecorationComponent.cs" />
     <Compile Include="Mod\Components\DecorationsComponent.cs" />
-    <Compile Include="Mod\Components\Prefabs\LevelCrossingBehaviour.cs" />
-    <Compile Include="Mod\Components\Prefabs\PrefabBehaviourAttribute.cs" />
+    <Compile Include="Mod\Components\Prefabs\LevelCrossingComponent.cs" />
+    <Compile Include="Mod\Components\Prefabs\PrefabComponentAttribute.cs" />
+    <Compile Include="Mod\Components\Prefabs\SignComponent.cs" />
     <Compile Include="Mod\Components\SpawnerComponent.cs" />
     <Compile Include="Mod\Components\TimedMessageComponent.cs" />
     <Compile Include="Mod\ConsoleCommands.cs" />
@@ -188,12 +189,20 @@
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackResource.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackStream.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\ZippedPack.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\AssetProperty.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\BoolProperty.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\GlobalProperties.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\IntProperty.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\IProperties.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignment.cs" />
     <Compile Include="Mod\GameObjects\Spawners\DecorationSpawner.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\Pack.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Packs\PackLoader.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Properties\MaterialAssignments.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Properties\Priority.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\StringProperty.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\TextureProperty.cs" />
+    <Compile Include="Mod\GameObjects\Spawners\Properties\TrackingProperty.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler.cs" />
     <Compile Include="Mod\GameObjects\Spawners\Upgrade\UpgradeHandler_1_92.cs" />
     <Compile Include="Mod\GameObjects\Library\DecorationTarget.cs" />
@@ -269,6 +278,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(TargetPath)" "D:\Games\Steam\steamapps\common\Derail Valley\Mods\DVLightSniper\$(TargetFileName)"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -159,6 +159,21 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             }
         }
 
+        internal int LightCount
+        {
+            get => this.lights.Count;
+        }
+
+        internal int MeshCount
+        {
+            get => this.meshes.Count;
+        }
+
+        internal int DecorationCount
+        {
+            get => this.decorations.Count;
+        }
+
         [DataMember(Name = "version", Order = 0)]
         internal int Version { get; set; } = Config.BUILD_VERSION;
 
@@ -514,6 +529,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
         protected override void OnSaving()
         {
             Directory.CreateDirectory(this.Region.Dir);
+
+            foreach (Spawner spawner in this)
+            {
+                spawner.OnSaving();
+            }
         }
 
         protected override void OnSaved()

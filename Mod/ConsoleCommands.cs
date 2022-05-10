@@ -62,6 +62,7 @@ namespace DVLightSniper.Mod
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.DisablePack",        ConsoleCommands.DisablePack,        1, 1);
                 ConsoleCommands.RegisterCommand("BG",          "LightSniper.BeginGroup",         ConsoleCommands.BeginGroup,         1, 1);
                 ConsoleCommands.RegisterCommand("EG",          "LightSniper.EndGroup",           ConsoleCommands.EndGroup,           0, 0);
+                ConsoleCommands.RegisterCommand("LG",          "LightSniper.ListGroups",         ConsoleCommands.ListGroups,         0, 2);
                 ConsoleCommands.RegisterCommand("LON",         "LightSniper.EnableGroup",        ConsoleCommands.EnableGroup,        0, 2);
                 ConsoleCommands.RegisterCommand("LOFF",        "LightSniper.DisableGroup",       ConsoleCommands.DisableGroup,       0, 2);
                 ConsoleCommands.RegisterCommand("PRIO",        "LightSniper.GroupPriority",      ConsoleCommands.GroupPriority,      0, 3);
@@ -69,6 +70,8 @@ namespace DVLightSniper.Mod
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.SaveTemplate",       ConsoleCommands.SaveTemplate,       1   );
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.ReloadTemplates",    ConsoleCommands.ReloadTemplates,    0, 0);
                 ConsoleCommands.RegisterCommand(null,          "LightSniper.CleanUpOnExit",      ConsoleCommands.CleanUpOnExit,      0, 1);
+                ConsoleCommands.RegisterCommand("PROPGET",     "LightSniper.GetProperty",        ConsoleCommands.GetProperty,        0, 1);
+                ConsoleCommands.RegisterCommand("PROPSET",     "LightSniper.SetProperty",        ConsoleCommands.SetProperty,        1   );
 
                 // hidden from autocomplete, dev only
                 ConsoleCommands.RegisterCommand("MARKERS",     "LightSniper.ToggleMarkers",      ConsoleCommands.ToggleMarkers,      0, 0, false);
@@ -157,6 +160,31 @@ namespace DVLightSniper.Mod
         private static void EndGroup(CommandArg[] args)
         {
             LightSniper.SpawnerController?.EndGroup();
+        }
+
+        private static void ListGroups(CommandArg[] args)
+        {
+            string yardId = "";
+            int page = 1;
+            if (args.Length > 0)
+            {
+                if (args.Length == 1 && int.TryParse(args[0].String, out int pg))
+                {
+                    page = pg;
+                }
+                else if (!ConsoleCommands.GetNameFromArgs(args, true, false, out yardId, 0, "Region"))
+                {
+                    return;
+                }
+            }
+
+            if (args.Length > 1 && !int.TryParse(args[1].String, out page))
+            {
+                Terminal.Log(TerminalLogType.Error, "Invalid page number {0}", args[1].String);
+                return;
+            }
+
+            LightSniper.SpawnerController?.ListGroups(yardId, page);
         }
 
         private static void EnableGroup(CommandArg[] args)
@@ -258,12 +286,11 @@ namespace DVLightSniper.Mod
 
         private static void ReloadTemplates(CommandArg[] args)
         {
+            CommsRadioLightSniper.TemplateReloadRequested = true;
             GameObject radioControllerHolder = GameObject.Find("LightSniperRadioController");
-            if (radioControllerHolder != null)
+            if (radioControllerHolder == null)
             {
-                CommsRadioLightSniper radioController = radioControllerHolder.GetComponent<CommsRadioLightSniper>();
-                radioController.ReloadTemplates();
-                Terminal.Log(TerminalLogType.Message, "Templates reloaded from disk");
+                Terminal.Log(TerminalLogType.Message, "Templates will be reloaded when radio is activated");
             }
         }
 
@@ -280,6 +307,52 @@ namespace DVLightSniper.Mod
 
             Terminal.Log(TerminalLogType.Message, "cleanUpOnExit is now {0}", LightSniper.Settings.cleanUpOnExit);
             LightSniper.Settings.Save(LightSniper.ModEntry);
+        }
+
+        private static void GetProperty(CommandArg[] args)
+        {
+            if (args.Length == 0)
+            {
+                foreach (KeyValuePair<string, string> kv in GlobalProperties.Instance.GetAll())
+                {
+                    Terminal.Log(TerminalLogType.Message, "{0}=<color=#{2}>{1}</color>", kv.Key, kv.Value ?? "null", kv.Value == null ? "FF0000" : "00FF00");
+                }
+                return;
+            }
+
+            string key = args[0].String;
+            Match match = new Regex(@"^(?<group>[a-z_\-]+(?<key>\.[a-z0-9_\-]+)?)$", RegexOptions.IgnoreCase).Match(key);
+            if (!match.Success)
+            {
+                Terminal.Log(TerminalLogType.Error, "'{0}' is not a valid property key.", key);
+                return;
+            }
+
+            if (!match.Groups["key"].Success)
+            {
+                foreach (KeyValuePair<string, string> kv in GlobalProperties.Instance.GetAll(match.Groups["group"].Value))
+                {
+                    Terminal.Log(TerminalLogType.Message, "{0}=<color=#{2}>{1}</color>", kv.Key, kv.Value ?? "null", kv.Value == null ? "FF0000" : "00FF00");
+                }
+                return;
+            }
+
+            string value = GlobalProperties.Instance.Get(key, null);
+            Terminal.Log(TerminalLogType.Message, "{0}=<color=#{2}>{1}</color>", key, value ?? "null", value == null ? "FF0000" : "00FF00");
+        }
+
+        private static void SetProperty(CommandArg[] args)
+        {
+            string key = args[0].String;
+            if (!new Regex(@"^([a-z_\-]+\.[a-z0-9_\-]+)$", RegexOptions.IgnoreCase).IsMatch(key))
+            {
+                Terminal.Log(TerminalLogType.Error, "'{0}' is not a valid property key.", key);
+                return;
+            }
+
+            string value = args.Length > 1 ? ConsoleCommands.ConcatenateArgs(args, 1) : null;
+            GlobalProperties.Instance.Set(key, value);
+            Terminal.Log(TerminalLogType.Message, "{0}=<color=#{2}>{1}</color>", key, value ?? "null", value == null ? "FF0000" : "00FF00");
         }
 
         private static bool GetNameFromArgs(CommandArg[] args, bool allowNone, bool allowColon, out string name, int argIndex = 0, string type = "Group", string defaultValue = "*")
@@ -304,7 +377,7 @@ namespace DVLightSniper.Mod
             }
 
             string regex = allowColon ? @"^[a-z0-9\(\)\[\]\.\,\@\+\-\=\{\}\#\$\!_]+(:[a-z0-9\(\)\[\]\.\,\@\+\-\=\{\}\#\$\!_]+)?$" : @"^[a-z0-9\(\)\[\]\.\,\@\+\-\=\{\}\#\$\!_]+$";
-            if (!new Regex(regex).IsMatch(name))
+            if (!new Regex(regex, RegexOptions.IgnoreCase).IsMatch(name))
             {
                 Terminal.Log(TerminalLogType.Error, "{0} name '{1}' is not a valid {0} name", type, name);
                 return false;
@@ -314,18 +387,24 @@ namespace DVLightSniper.Mod
 
         private static bool TemplateNameFromArgs(CommandArg[] args, out string templateName)
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (var arg in args)
-            {
-                sb.Append(' ').Append(arg.String);
-            }
-            templateName = sb.ToString().Trim().ToLowerInvariant();
+            templateName = ConsoleCommands.ConcatenateArgs(args).ToLowerInvariant();
             if (!new Regex(@"^[a-z0-9 \(\)\[\]\.\,\@\+\-\=\{\}\#\$\!_]+$").IsMatch(templateName))
             {
                 Terminal.Log(TerminalLogType.Error, "Template name '{0}' not a valid template name", templateName);
                 return false;
             }
             return true;
+        }
+
+        private static string ConcatenateArgs(CommandArg[] args, int startIndex = 0)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int index = startIndex; index < args.Length; index++)
+            {
+                CommandArg arg = args[index];
+                sb.Append(' ').Append(arg.String);
+            }
+            return sb.ToString().Trim();
         }
 
         private static void ToggleMarkers(CommandArg[] args)

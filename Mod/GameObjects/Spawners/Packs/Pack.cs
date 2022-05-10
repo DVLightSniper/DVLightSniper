@@ -231,5 +231,15 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
         {
             return this.Name;
         }
+
+        public override bool Equals(object obj)
+        {
+            return (obj as Pack)?.Id == this.Id;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.Id.GetHashCode();
+        }
     }
 }

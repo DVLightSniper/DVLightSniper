@@ -856,6 +856,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.Group.Add(this);
         }
 
+        public virtual void OnSaving()
+        {
+        }
+
         internal virtual Spawner Save()
         {
             this.Group?.Save();

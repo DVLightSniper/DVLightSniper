@@ -281,16 +281,44 @@ namespace DVLightSniper.Mod.GameObjects.Spawners
             this.CurrentGroup = this.defaultGroup;
         }
 
-        internal void EnableGroup(string groupName, bool enabled)
+        internal void ListGroups(List<string> groupList)
         {
+            foreach (Group group in this.groups)
+            {
+                if (group.IsEmpty)
+                {
+                    continue;
+                }
+
+                string regionColour = this.WorldLocation == Vector2.zero ? "CCCCCC" : "FFFF55";
+
+                string packColour = group.Pack != null ? (group.Pack.Enabled ? "55FF55" : "FF5555") : "CCCCCC";
+                string packName = group.Pack?.Name.Clamp(35) ?? "Regions";
+                string groupColour = group.Pack != null ? (group.Enabled ? "FFFF55" : "FF5555") : (group.Enabled ? "FFFFFF" : "CCCCCC");
+                string groupStatusColour = group.Enabled ? "55FF55" : "FF5555";
+                string groupStatus = group.Enabled ? "Enabled" : "Disabled";
+
+                groupList.Add($"<color=#{regionColour}>{this.YardID,-20}</color> <color=#{packColour}>{packName,-35}</color> <color=#{groupColour}>{@group.Name,-50}</color> <color=#55FFFF>{@group.LightCount,6} {@group.MeshCount,6} {@group.DecorationCount,6}</color>  <color=#{groupStatusColour}>{groupStatus}</color>");
+            }
+        }
+
+        internal bool EnableGroup(string groupName, bool enabled, ISet<Pack> packMatches)
+        {
+            bool matched = false;
             foreach (Group group in this.groups)
             {
                 if (groupName == "*" || group.Name.Equals(groupName, StringComparison.InvariantCultureIgnoreCase))
                 {
+                    matched = true;
                     group.Enabled = enabled;
                     group.Save();
                 }
+                else if (group.Pack != null && group.BaseName.Equals(groupName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    packMatches.Add(group.Pack);
+                }
             }
+            return matched;
         }
 
         internal void SetGroupPriority(string groupName, Priority priority)

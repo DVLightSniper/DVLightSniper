@@ -173,6 +173,11 @@ namespace DVLightSniper.Mod
             private set;
         }
 
+        internal static string ResourcesPath
+        {
+            get => System.IO.Path.Combine(LightSniper.Path, "Resources");
+        }
+
         internal static bool Enabled
         {
             get; private set;

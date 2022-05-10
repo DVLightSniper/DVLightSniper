@@ -30,6 +30,7 @@ using System.Threading.Tasks;
 
 using DVLightSniper.Mod.GameObjects.Spawners;
 using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 
 using JetBrains.Annotations;
 
@@ -47,6 +48,8 @@ namespace DVLightSniper.Mod.Components
     internal class MeshComponent : SpawnerComponent
     {
         internal MeshSpawner Spawner { get; set; }
+
+        internal MeshProperties Properties { get => this.Spawner?.Properties; }
 
         internal event Action<MeshComponent> OnDestroyed;
 

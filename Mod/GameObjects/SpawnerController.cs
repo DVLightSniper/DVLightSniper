@@ -26,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Windows.Forms;
@@ -1026,6 +1027,48 @@ namespace DVLightSniper.Mod.GameObjects
             LightSniper.Settings.CurrentGroup = Region.DEFAULT_GROUP_NAME;
         }
 
+        internal void ListGroups(string yardId, int page)
+        {
+            if (yardId == "")
+            {
+                yardId = this.FindRegion(PlayerManager.GetWorldAbsolutePlayerPosition().AsMapLocation()).YardID;
+            }
+
+            List<string> groupList = new List<string>();
+            foreach (Region region in this.regions.Values)
+            {
+                if (yardId == "*" || yardId.Equals(region.YardID, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    region.ListGroups(groupList);
+                }
+            }
+
+            int entriesPerPage = 20;
+            int pages = Math.Max(1, (int)Math.Ceiling(groupList.Count / (float)entriesPerPage));
+            if (page < 1 || page > pages)
+            {
+                Terminal.Log(TerminalLogType.Error, "Invalid page number: {0} (min=1 max={1})", page, pages);
+                return;
+            }
+
+            Terminal.Log("<color=#55FFFF>Listing groups for <color=#FFFF55>{0}</color></color>", yardId == "*" ? "all regions" : yardId);
+            Terminal.Log("     <color=#55FFFF>{0,-20} {1,-35} {2,-50} {3,6} {4,6} {5,6}  {6}</color>", "Region", "Pack", "Group", "Lights", "Meshes", "Decos", "State");
+            for (int line = 0, currentPage = 1; line < groupList.Count; line++)
+            {
+                if (currentPage == page)
+                {
+                    Terminal.Log("{0,4} {1}", line + 1, groupList[line]);
+                }
+
+                if (line % entriesPerPage == (entriesPerPage - 1))
+                {
+                    currentPage++;
+                }
+            }
+            Terminal.Log("    <color=#55FFFF>Showing page {0} of {1}</color>", page, pages);
+
+        }
+
         /// <summary>
         /// Enable or disable the specified group in all regions
         /// </summary>
@@ -1034,16 +1077,40 @@ namespace DVLightSniper.Mod.GameObjects
         /// <param name="enabled">Whether to enable or disable the group</param>
         internal void EnableGroup(string yardId, string groupName, bool enabled)
         {
-            foreach (Region region in this.regions.Values)
+            ISet<Pack> packMatches = new HashSet<Pack>();
+            bool matched = this.EnableGroup(yardId, groupName, enabled, packMatches);
+            if (!matched && packMatches.Count > 0)
             {
-                if (yardId == "*" || yardId.Equals(region.YardID, StringComparison.InvariantCultureIgnoreCase))
+                if (packMatches.Count == 1)
                 {
-                    region.EnableGroup(groupName, enabled);
+                    groupName = packMatches.First().Id + ":" + groupName;
+                    this.EnableGroup(yardId, groupName, enabled, packMatches);
+                }
+                else
+                {
+                    Terminal.Log(TerminalLogType.Warning, "No group found matching group id {0} but the following options were found:", groupName);
+                    foreach (Pack pack in packMatches)
+                    {
+                        Terminal.Log(TerminalLogType.Message, "{0}:{1}", pack.Id, groupName);
+                    }
                 }
             }
 
             string action = enabled ? "Enabled" : "Disabled";
             Terminal.Log(TerminalLogType.Message, groupName == "*" ? $"{action} all groups" : $"{action} group {groupName}");
+        }
+
+        private bool EnableGroup(string yardId, string groupName, bool enabled, ISet<Pack> packMatches)
+        {
+            bool matched = false;
+            foreach (Region region in this.regions.Values)
+            {
+                if (yardId == "*" || yardId.Equals(region.YardID, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    matched |= region.EnableGroup(groupName, enabled, packMatches);
+                }
+            }
+            return matched;
         }
 
         /// <summary>
@@ -1372,7 +1439,7 @@ namespace DVLightSniper.Mod.GameObjects
                     return new ActionResult(true, $"Specified prefab:\n{meshTemplate.Properties.AssetName}\ncould not be loaded", Color.yellow);
                 }
 
-                MeshSpawner mesh = region.CreateMesh(parentPath, localPosition, rotation, meshTemplate.Properties);
+                MeshSpawner mesh = region.CreateMesh(parentPath, localPosition, rotation, meshTemplate.Properties.Clone().Expand());
                 this.undoBuffer.Add(new UndoBufferEntry(this.undoBufferStep, mesh, UndoBufferEntry.Action.Created));
 
                 List<Vector3> lightOffsets = new List<Vector3>();

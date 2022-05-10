@@ -148,8 +148,8 @@
   <data name="meshes_lampposts_1.0.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\meshes_lampposts_1.0.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="meshes_levelcrossings_1.0.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\resources\meshes_levelcrossings_1.0.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="meshes_levelcrossings_1.1.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\meshes_levelcrossings_1.1.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="builtin.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\builtin.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -157,13 +157,16 @@
   <data name="Sprites" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\sprites.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="meshes_decoration_lights_1.0.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\resources\meshes_decoration_lights_1.0.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="meshes_decoration_lights_1.1.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\meshes_decoration_lights_1.1.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="Default_Pack_1.0.zip" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\Default_Pack_1.0.zip;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="Level_Crossings_Pack_1.0.zip" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\Level_Crossings_Pack_1.0.zip;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="meshes_signs_1.0.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\meshes_signs_1.0.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>

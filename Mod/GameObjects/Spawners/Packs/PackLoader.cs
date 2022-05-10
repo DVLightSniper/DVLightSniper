@@ -104,7 +104,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         private static List<Pack> Discover()
         {
-            PackLoader.metaStorage = PackMetaStorage.Load(Path.Combine(LightSniper.Path, "Resources", "packs.metadata.json"));
+            PackLoader.metaStorage = PackMetaStorage.Load(Path.Combine(LightSniper.ResourcesPath, "packs.metadata.json"));
             Dictionary<string, Pack> discovered = new Dictionary<string, Pack>();
             DirectoryInfo dir = new DirectoryInfo(PackLoader.Dir);
             if (!dir.Exists)
