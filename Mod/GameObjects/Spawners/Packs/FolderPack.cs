@@ -39,8 +39,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
     /// </summary>
     internal class FolderPack : Pack
     {
-        public FolderPack(string path, PackMetaStorage metaStorage)
-            : base(path, metaStorage)
+        public FolderPack(string path, Metadata metaStore)
+            : base(path, metaStore)
         {
         }
 
@@ -68,6 +68,19 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             return results;
         }
 
+        internal override bool Contains(string path)
+        {
+            try
+            {
+                return File.Exists(System.IO.Path.Combine(this.Path, path));
+            }
+            catch (Exception e)
+            {
+                LightSniper.Logger.Debug(e);
+                return false;
+            }
+        }
+
         internal override DateTime GetLastWriteTime(string path)
         {
             try
@@ -92,7 +105,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 string fullPath = System.IO.Path.Combine(this.Path, path);
                 if (File.Exists(fullPath))
                 {
-                    return new PackStream(this, path.ConformSlashes(), File.GetLastWriteTime(fullPath), new FileStream(fullPath, FileMode.Open));
+                    FileInfo fileInfo = new FileInfo(fullPath);
+                    return new PackStream(this, path.ConformSlashes(), fileInfo.LastWriteTime, new FileStream(fullPath, FileMode.Open), fileInfo.Length);
                 }
             }
             catch (Exception e)

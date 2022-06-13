@@ -34,7 +34,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
     /// A property which tracks a property setting and updates when it is changed by the user
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal abstract class TrackingProperty<T>
+    internal abstract class TrackingProperty<T> : IDisposable
     {
         /// <summary>
         /// Raised when the computed value of the property changes
@@ -78,6 +78,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
             this.properties.Changed += this.Update;
         }
 
+        public void Dispose()
+        {
+            this.properties.Changed -= this.Update;
+        }
+
         private void Update(string key)
         {
             if (key == this.key)
@@ -86,16 +91,16 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
             }
         }
 
-        protected void Update()
+        protected void Update(bool initialise = false)
         {
             string propertyValue = this.properties.Get(this.key, this.defaultPropertyValue);
-            if (propertyValue == this.PropertyValue)
+            if (propertyValue == this.PropertyValue && !initialise)
             {
                 return;
             }
 
             this.PropertyValue = propertyValue;
-            T value = this.ComputeValue(propertyValue);
+            T value = this.ComputeValue(this.PropertyValue);
             if (value == null)
             {
                 if (this.defaultPropertyValue == this.PropertyValue)
@@ -109,7 +114,14 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
                 this.Value = value;
             }
 
-            this.Changed?.Invoke(this.Value);
+            try
+            {
+                this.Changed?.Invoke(this.Value);
+            }
+            catch (Exception e)
+            {
+                LightSniper.Logger.Debug(e);
+            }
         }
 
         protected abstract T ComputeValue(string propertyValue);

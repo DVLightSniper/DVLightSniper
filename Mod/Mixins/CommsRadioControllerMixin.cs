@@ -31,7 +31,7 @@ using System.Threading.Tasks;
 using DV;
 
 using DVLightSniper.Mod.Components;
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 
 using HarmonyLib;
 

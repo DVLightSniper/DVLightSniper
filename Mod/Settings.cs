@@ -262,6 +262,12 @@ namespace DVLightSniper.Mod
             }
         }
 
+        internal bool IsNightTime(int timestamp)
+        {
+            timestamp %= 86400;
+            return timestamp < (this.DawnTime * 3600) || timestamp > (this.DuskTime * 3600);
+        }
+
         public void OnLoad()
         {
             if (this.Perpendicular.keyCode == 0)

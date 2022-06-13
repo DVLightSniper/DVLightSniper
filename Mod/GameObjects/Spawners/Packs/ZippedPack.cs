@@ -43,8 +43,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
     {
         private ZipArchive zip;
 
-        internal ZippedPack(string path, PackMetaStorage metaStorage)
-            : base(path, metaStorage)
+        internal ZippedPack(string path, Metadata metaStore)
+            : base(path, metaStore)
         {
         }
 
@@ -81,6 +81,19 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             return results;
         }
 
+        internal override bool Contains(string path)
+        {
+            try
+            {
+                return this.zip.GetEntry(ZippedPack.SanitiseZipPath(path)) != null;
+            }
+            catch (Exception e)
+            {
+                LightSniper.Logger.Debug(e);
+                return false;
+            }
+        }
+
         internal override DateTime GetLastWriteTime(string path)
         {
             try
@@ -103,7 +116,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 {
                     return null;
                 }
-                return new PackStream(this, path.ConformSlashes(), entry.LastWriteTime.DateTime, entry.Open());
+                return new PackStream(this, path.ConformSlashes(), entry.LastWriteTime.DateTime, entry.Open(), entry.Length);
             }
             catch (Exception e)
             {

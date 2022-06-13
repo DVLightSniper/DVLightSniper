@@ -24,9 +24,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,42 +33,41 @@ using DVLightSniper.Mod.Storage;
 namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 {
     /// <summary>
-    /// Since packs are read-only by design, any information we want to store about them needs to be
-    /// external, hence we use this storage to keep such information
+    /// Wrapper for MetaStorage which returns the pack too
     /// </summary>
-    [DataContract]
-    internal class PackMetaStorage : JsonStorage
+    internal class PackMetaStorage
     {
-        [DataMember(Name = "meta", Order = 0)]
-        private Dictionary<string, PackMeta> meta = new Dictionary<string, PackMeta>();
+        /// <summary>
+        /// The pack which supplied the stream
+        /// </summary>
+        internal Pack Pack { get; }
 
-        internal static PackMetaStorage Load(params string[] path)
+        /// <summary>
+        /// The filename within the pack
+        /// </summary>
+        internal string Name { get; }
+
+        /// <summary>
+        /// Modification time of the resource
+        /// </summary>
+        internal DateTime LastWriteTime { get; }
+
+        /// <summary>
+        /// The meta storage resource
+        /// </summary>
+        internal MetaStorage MetaStorage { get; }
+
+        internal PackMetaStorage(Pack pack, string name, DateTime lastWriteTime, MetaStorage metaStorage)
         {
-            return JsonStorage.Load<PackMetaStorage>(path) ?? new PackMetaStorage() { FileName = Path.Combine(path) };
+            this.Pack = pack;
+            this.Name = name;
+            this.LastWriteTime = lastWriteTime;
+            this.MetaStorage = metaStorage;
         }
 
-        internal PackMeta Get(Pack pack)
+        public override string ToString()
         {
-            if (!this.meta.ContainsKey(pack.Id))
-            {
-                PackMeta packMeta = this.meta[pack.Id] = new PackMeta();
-                packMeta.Changed += this.OnChanged;
-                return packMeta;
-            }
-            return this.meta[pack.Id];
-        }
-
-        protected override void OnLoaded()
-        {
-            foreach (PackMeta packMeta in this.meta.Values)
-            {
-                packMeta.Changed += this.OnChanged;
-            }
-        }
-
-        private void OnChanged()
-        {
-            this.Save();
+            return this.Pack.Path + "!" + Name;
         }
     }
 }

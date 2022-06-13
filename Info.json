@@ -2,7 +2,7 @@
     "Id": "DVLightSniper",
     "DisplayName": "LightSniper",
     "Author": "Mumfrey",
-    "Version": "0.1.2",
+    "Version": "0.1.3",
     "EntryMethod": "DVLightSniper.Main.Load",
     "HomePage": "https://www.nexusmods.com/derailvalley/mods/428",
     "Repository": "https://dvlightsniper.eq2.co.uk/repository.json"

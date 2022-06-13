@@ -29,7 +29,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 
 using Object = UnityEngine.Object;
 
@@ -66,12 +66,12 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
             this.assetLoader = assetLoader;
             this.assetBundleName = assetBundleName;
             this.assetPrefix = assetPrefix ?? "";
-            this.Update();
+            this.Update(true);
         }
 
         protected override T ComputeValue(string propertyValue)
         {
-            return this.assetLoader.Load<T>(this.assetBundleName, this.assetPrefix + propertyValue);
+            return this.assetLoader.Load<T>(this.assetBundleName, this.assetPrefix + propertyValue, AssetLoader.AssetPolicy.Any);
         }
     }
 }

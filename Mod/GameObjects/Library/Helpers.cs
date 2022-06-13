@@ -30,7 +30,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using DV;
-
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.Util;
 
 using JetBrains.Annotations;

@@ -33,7 +33,7 @@ using DV;
 
 using DVLightSniper.Mod.GameObjects;
 using DVLightSniper.Mod.GameObjects.Spawners;
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners.Packs;
 
 using JetBrains.Annotations;
@@ -42,6 +42,7 @@ using UnityEngine;
 
 using VRTK;
 
+using AssetLoader = DVLightSniper.Mod.GameObjects.Library.Assets.AssetLoader;
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
 using Resources = DVLightSniper.Properties.Resources;
@@ -103,7 +104,7 @@ namespace DVLightSniper.Mod.Components
                 if (CoronaComponent.availableCoronas == null)
                 {
                     CoronaComponent.availableCoronas = new List<string> { "" };
-                    foreach (string file in AssetLoader.Coronas.ListFiles())
+                    foreach (string file in AssetLoader.Coronas.ListFiles(AssetType.TEXTURE))
                     {
                         CoronaComponent.availableCoronas.Add(Path.GetFileName(file));
                     }
@@ -163,7 +164,7 @@ namespace DVLightSniper.Mod.Components
         internal LightSpawner Spawner { get; set; }
 
         // Texture and material
-        private AssetLoader.TextureHandle texture;
+        private IAsset<Texture2D> texture;
         private Material material;
         private SpriteRenderer spriteRenderer;
 
@@ -248,8 +249,8 @@ namespace DVLightSniper.Mod.Components
                     this.material.hideFlags = HideFlags.HideAndDontSave;
                     this.spriteRenderer = this.gameObject.AddComponent<SpriteRenderer>();
 
-                    this.texture = AssetLoader.Coronas.GetTexture(this.Corona, CoronaComponent.TEXTURE_SIZE);
-                    Sprite sprite = Sprite.Create(this.texture.Texture, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
+                    this.texture = AssetLoader.Coronas.LoadAsset<Texture2D>("", this.Corona);
+                    Sprite sprite = Sprite.Create(this.texture.Asset, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
                     this.spriteRenderer.sprite = sprite;
                     this.spriteRenderer.material = this.material;
                 }
@@ -266,8 +267,8 @@ namespace DVLightSniper.Mod.Components
 
                 Sprite oldSprite = this.spriteRenderer.sprite;
 
-                this.texture = AssetLoader.Coronas.GetTexture(this.Corona, CoronaComponent.TEXTURE_SIZE);
-                Sprite sprite = Sprite.Create(this.texture.Texture, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
+                this.texture = AssetLoader.Coronas.LoadAsset<Texture2D>("", this.Corona);
+                Sprite sprite = Sprite.Create(this.texture.Asset, new Rect(0, 0, CoronaComponent.TEXTURE_SIZE, CoronaComponent.TEXTURE_SIZE), new Vector2(0.5F, 0.5F));
                 this.spriteRenderer.sprite = sprite;
 
                 Object.Destroy(oldSprite);

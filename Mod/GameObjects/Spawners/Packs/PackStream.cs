@@ -34,7 +34,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
     /// <summary>
     /// Wrapper for Stream which returns the pack too
     /// </summary>
-    internal class PackStream
+    internal class PackStream : IDisposable
     {
         /// <summary>
         /// The pack which supplied the stream
@@ -56,12 +56,55 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
         /// </summary>
         internal Stream Stream { get; }
 
-        internal PackStream(Pack pack, string name, DateTime lastWriteTime, Stream stream)
+        /// <summary>
+        /// The length of the underlying resource, if known, or -1 if not
+        /// </summary>
+        internal long ContentLength { get; }
+
+        private byte[] data;
+
+        internal PackStream(Pack pack, string name, DateTime lastWriteTime, Stream stream, long contentLength)
         {
             this.Pack = pack;
             this.Name = name;
             this.LastWriteTime = lastWriteTime;
             this.Stream = stream;
+            this.ContentLength = contentLength;
+        }
+
+        internal byte[] GetData()
+        {
+            if (this.data != null)
+            {
+                return this.data;
+            }
+
+            if (this.ContentLength < 0)
+            {
+                throw new InvalidOperationException($"Content length not known for {this} in GetData");
+            }
+
+            long cursor = this.Stream.Position;
+            this.Stream.Position = 0;
+
+            this.data = new byte[this.ContentLength];
+            using (MemoryStream ms = new MemoryStream(this.data))
+            {
+                this.Stream.CopyTo(ms);
+            }
+
+            this.Stream.Position = cursor;
+            return this.data;
+        }
+
+        public override string ToString()
+        {
+            return this.Pack.Path + "!" + Name;
+        }
+
+        public void Dispose()
+        {
+            this.Stream?.Dispose();
         }
     }
 }

@@ -48,7 +48,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         private static List<Pack> packs;
 
-        private static PackMetaStorage metaStorage;
+        private static Metadata metadata;
 
         internal static IEnumerable<Pack> Packs
         {
@@ -85,7 +85,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 if (data != null)
                 {
                     File.WriteAllBytes(outFileName, (byte[])data);
-                    PackLoader.packs.Add(new ZippedPack(outFileName, PackLoader.metaStorage));
+                    PackLoader.packs.Add(new ZippedPack(outFileName, PackLoader.metadata));
                     return true;
                 }
             }
@@ -104,7 +104,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         private static List<Pack> Discover()
         {
-            PackLoader.metaStorage = PackMetaStorage.Load(Path.Combine(LightSniper.ResourcesPath, "packs.metadata.json"));
+            PackLoader.metadata = Metadata.Load(Path.Combine(LightSniper.ResourcesPath, "packs.metadata.json"));
             Dictionary<string, Pack> discovered = new Dictionary<string, Pack>();
             DirectoryInfo dir = new DirectoryInfo(PackLoader.Dir);
             if (!dir.Exists)
@@ -163,12 +163,12 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             foreach (FileInfo zipFile in dir.EnumerateFiles("*.zip"))
             {
                 LightSniper.Logger.Info("Found candidate zip file {0}", zipFile.FullName);
-                AddCandidate(new ZippedPack(zipFile.FullName, PackLoader.metaStorage));
+                AddCandidate(new ZippedPack(zipFile.FullName, PackLoader.metadata));
             }
             foreach (DirectoryInfo directory in dir.EnumerateDirectories())
             {
                 LightSniper.Logger.Info("Found candidate folder {0}", directory.FullName);
-                AddCandidate(new FolderPack(directory.FullName, PackLoader.metaStorage));
+                AddCandidate(new FolderPack(directory.FullName, PackLoader.metadata));
             }
 
             return discovered.Values.ToList();
@@ -182,6 +182,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 results.AddRange(pack.Find(path, extension));
             }
             return results.Distinct();
+        }
+
+        internal static bool Contains(string path)
+        {
+            return PackLoader.Packs.Any(pack => pack.Contains(path));
         }
 
         internal static DateTime GetLastWriteTime(string path)
@@ -202,6 +207,11 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
         internal static PackJson OpenJson(string path)
         {
             return PackLoader.Packs.Select(pack => pack.OpenJson(path)).FirstOrDefault(json => json != null);
+        }
+
+        internal static PackMetaStorage OpenMeta(string path)
+        {
+            return PackLoader.Packs.Select(pack => pack.OpenMeta(path)).FirstOrDefault(json => json != null);
         }
     }
 }

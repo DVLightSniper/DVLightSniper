@@ -28,7 +28,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 
 using JetBrains.Annotations;
 

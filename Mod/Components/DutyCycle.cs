@@ -63,8 +63,6 @@ namespace DVLightSniper.Mod.Components
         {
             private static readonly System.Random RANDOM_SOURCE = new System.Random();
 
-            internal static DateTime CurrentTime { get; set; }
-
             private readonly int offsetSeconds;
 
             internal DuskTillDawn()
@@ -74,8 +72,7 @@ namespace DVLightSniper.Mod.Components
 
             protected override bool ComputeState()
             {
-                int now = (SpawnerController.CurrentSecond + this.offsetSeconds) % 86400;
-                return now < (LightSniper.Settings.DawnTime * 3600) || now > (LightSniper.Settings.DuskTime * 3600);
+                return LightSniper.Settings.IsNightTime(SpawnerController.CurrentSecond + this.offsetSeconds);
             }
 
             internal static DutyCycle Parse(int argc, string[] argv)
@@ -307,12 +304,24 @@ namespace DVLightSniper.Mod.Components
             private static int MIN_TIME = 25;
             private static int MAX_TIME = 500;
 
+            private readonly bool always;
+
             private DateTime nextTransition = DateTime.UtcNow;
 
             private bool state = false;
 
+            public Random(bool always)
+            {
+                this.always = always;
+            }
+
             protected override bool ComputeState()
             {
+                if (!this.always && !SpawnerController.IsNightTime)
+                {
+                    return false;
+                }
+
                 if (DateTime.UtcNow > this.nextTransition)
                 {
                     this.state = !this.state;
@@ -322,9 +331,14 @@ namespace DVLightSniper.Mod.Components
                 return this.state;
             }
 
+            public override string ToString()
+            {
+                return $"{this.Name}({(this.always ? "always" : "")})";
+            }
+
             internal static DutyCycle Parse(int argc, string[] argv)
             {
-                return new Random();
+                return new Random(argc > 0 && argv[0].Equals("always", StringComparison.OrdinalIgnoreCase));
             }
         }
 

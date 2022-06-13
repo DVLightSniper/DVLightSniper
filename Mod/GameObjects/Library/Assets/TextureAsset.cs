@@ -28,46 +28,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json.Linq;
+using DVLightSniper.Mod.Storage;
 
-namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
+using UnityEngine;
+
+namespace DVLightSniper.Mod.GameObjects.Library.Assets
 {
-    /// <summary>
-    /// Wrapper for JObject which returns the pack too
-    /// </summary>
-    internal class PackJson
+    internal class TextureAsset : FileAsset<Texture2D>
     {
-        /// <summary>
-        /// The pack which supplied the stream
-        /// </summary>
-        internal Pack Pack { get; }
+        public const int DEFAULT_TEXTURE_SIZE = 256;
 
-        /// <summary>
-        /// The filename within the pack
-        /// </summary>
-        internal string Name { get; }
-
-        /// <summary>
-        /// Modification time of the resource
-        /// </summary>
-        internal DateTime LastWriteTime { get; }
-
-        /// <summary>
-        /// The json object
-        /// </summary>
-        internal JObject JObject { get; }
-
-        internal PackJson(Pack pack, string name, DateTime lastWriteTime, JObject jObject)
+        public TextureAsset(AssetLoader assetLoader, string assetBundleName, string assetName, AssetLoader.LookupFlags lookupFlags = AssetLoader.LookupFlags.Default)
+            : base(assetLoader, AssetType.TEXTURE, assetBundleName, assetName, lookupFlags)
         {
-            this.Pack = pack;
-            this.Name = name;
-            this.LastWriteTime = lastWriteTime;
-            this.JObject = jObject;
         }
 
-        public override string ToString()
+        protected override Texture2D CreateAsset(MetaStorage meta)
         {
-            return this.Pack.Path + "!" + Name;
+            int textureSize = meta?["textureSize"].ValueOrDefault(TextureAsset.DEFAULT_TEXTURE_SIZE) ?? TextureAsset.DEFAULT_TEXTURE_SIZE;
+            return new Texture2D(textureSize, textureSize);
+        }
+
+        protected override bool LoadAsset(byte[] data)
+        {
+            this.Asset.LoadImage(data);
+            return true;
         }
     }
 }

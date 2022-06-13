@@ -307,5 +307,17 @@ namespace DVLightSniper.Mod
         {
             return value?.Length > max ? value.Substring(0, max) : value;
         }
+
+        public static string Unquote(this string value)
+        {
+            string str = value.Trim();
+
+            if (str.StartsWith("\"") && str.EndsWith("\""))
+            {
+                str = str.Substring(1, str.Length - 2);
+            }
+
+            return str;
+        }
     }
 }

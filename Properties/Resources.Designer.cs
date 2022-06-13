@@ -83,9 +83,29 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] corona_amber01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_amber01.png.meta", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] corona_blue01_png {
             get {
                 object obj = ResourceManager.GetObject("corona_blue01.png", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] corona_blue01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_blue01.png.meta", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -103,9 +123,29 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] corona_flare01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_flare01.png.meta", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] corona_flare02_png {
             get {
                 object obj = ResourceManager.GetObject("corona_flare02.png", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] corona_flare02_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_flare02.png.meta", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -123,9 +163,29 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] corona_flare03_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_flare03.png.meta", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] corona_green01_png {
             get {
                 object obj = ResourceManager.GetObject("corona_green01.png", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] corona_green01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_green01.png.meta", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -143,6 +203,16 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] corona_orange01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_orange01.png.meta", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] corona_red01_png {
             get {
                 object obj = ResourceManager.GetObject("corona_red01.png", resourceCulture);
@@ -153,9 +223,29 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] corona_red01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_red01.png.meta", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] corona_white01_png {
             get {
                 object obj = ResourceManager.GetObject("corona_white01.png", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] corona_white01_png_meta {
+            get {
+                object obj = ResourceManager.GetObject("corona_white01.png.meta", resourceCulture);
                 return ((byte[])(obj));
             }
         }

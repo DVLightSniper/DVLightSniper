@@ -33,6 +33,8 @@ using System.Threading.Tasks;
 
 using DV;
 
+using DVLightSniper.Mod.Storage;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -113,9 +115,9 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             }
         }
 
-        private readonly PackMeta meta;
+        private readonly Metadata.Data meta;
 
-        internal Pack(string path, PackMetaStorage metaStorage)
+        internal Pack(string path, Metadata metaStore)
         {
             this.Path = path;
             this.Name = System.IO.Path.GetFileName(path);
@@ -126,7 +128,7 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
             if (this.Valid)
             {
-                this.meta = metaStorage.Get(this);
+                this.meta = metaStore.Get(this);
                 this.SetString("version", this.Version);
             }
         }
@@ -166,6 +168,8 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
 
         internal abstract IEnumerable<string> Find(string path, string extension = null);
 
+        internal abstract bool Contains(string path);
+
         internal abstract DateTime GetLastWriteTime(string path);
 
         internal abstract PackStream OpenStream(string path);
@@ -185,6 +189,24 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
                 {
                     return new PackJson(this, resource.Name, resource.LastWriteTime, JObject.Load(new JsonTextReader(sr)));
                 }
+            }
+            catch (Exception e)
+            {
+                LightSniper.Logger.Debug(e);
+                return null;
+            }
+        }
+
+        internal virtual PackMetaStorage OpenMeta(string path)
+        {
+            PackStream resource = this.OpenStream(path);
+            if (resource == null)
+            {
+                return null;
+            }
+            try
+            {
+                return new PackMetaStorage(this, resource.Name, resource.LastWriteTime, MetaStorage.Read(resource.Stream));
             }
             catch (Exception e)
             {

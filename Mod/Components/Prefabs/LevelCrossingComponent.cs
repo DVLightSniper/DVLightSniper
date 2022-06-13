@@ -30,16 +30,14 @@ using System.Text;
 
 using DV;
 
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 
 using JetBrains.Annotations;
 
 using UnityEngine;
 
-using Console = System.Console;
 using Debug = System.Diagnostics.Debug;
-using Object = UnityEngine.Object;
 using TimingSection = DVLightSniper.Mod.GameObjects.SpawnerController.TimingSection;
 using TimingLevel = DVLightSniper.Mod.GameObjects.SpawnerController.TimingLevel;
 
@@ -149,7 +147,12 @@ namespace DVLightSniper.Mod.Components.Prefabs
 
         private void UpdateSound(AudioClip clip)
         {
-            this.audioSource.clip = Object.Instantiate(clip);
+            if (this.gameObject == null || clip == null)
+            {
+                return;
+            }
+
+            this.audioSource.clip = clip;
             this.audioSource.enabled = this.state != null && this.state.IsActive && this.soundProperty.PropertyValue != "none";
             if (this.audioSource.enabled)
             {
@@ -272,6 +275,12 @@ namespace DVLightSniper.Mod.Components.Prefabs
         private void OnDestroy()
         {
             this.UpdateTriggered(false);
+
+            this.soundProperty.Changed -= this.UpdateSound;
+            this.volumeProperty.Changed -= this.UpdateVolume;
+
+            this.soundProperty.Dispose();
+            this.volumeProperty.Dispose();
         }
     }
 }

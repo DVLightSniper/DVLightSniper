@@ -37,7 +37,7 @@ using DVLightSniper.Mod.Components.Prefabs;
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
 
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 using DVLightSniper.Mod.Util;
 

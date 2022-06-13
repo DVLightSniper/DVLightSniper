@@ -38,6 +38,8 @@ using DVLightSniper.Mod.Util;
 
 using UnityEngine;
 
+using Debug = System.Diagnostics.Debug;
+
 namespace DVLightSniper.Mod
 {
     /// <summary>
@@ -57,29 +59,29 @@ namespace DVLightSniper.Mod
 
             try
             {
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.InstallPack",        ConsoleCommands.InstallPack,        1, 1);
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.EnablePack",         ConsoleCommands.EnablePack,         1, 1);
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.DisablePack",        ConsoleCommands.DisablePack,        1, 1);
-                ConsoleCommands.RegisterCommand("BG",          "LightSniper.BeginGroup",         ConsoleCommands.BeginGroup,         1, 1);
-                ConsoleCommands.RegisterCommand("EG",          "LightSniper.EndGroup",           ConsoleCommands.EndGroup,           0, 0);
-                ConsoleCommands.RegisterCommand("LG",          "LightSniper.ListGroups",         ConsoleCommands.ListGroups,         0, 2);
-                ConsoleCommands.RegisterCommand("LON",         "LightSniper.EnableGroup",        ConsoleCommands.EnableGroup,        0, 2);
-                ConsoleCommands.RegisterCommand("LOFF",        "LightSniper.DisableGroup",       ConsoleCommands.DisableGroup,       0, 2);
-                ConsoleCommands.RegisterCommand("PRIO",        "LightSniper.GroupPriority",      ConsoleCommands.GroupPriority,      0, 3);
-                ConsoleCommands.RegisterCommand("RGN",         "LightSniper.SetRegion",          ConsoleCommands.SetRegion,          0, 1);
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.SaveTemplate",       ConsoleCommands.SaveTemplate,       1   );
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.ReloadTemplates",    ConsoleCommands.ReloadTemplates,    0, 0);
-                ConsoleCommands.RegisterCommand(null,          "LightSniper.CleanUpOnExit",      ConsoleCommands.CleanUpOnExit,      0, 1);
-                ConsoleCommands.RegisterCommand("PROPGET",     "LightSniper.GetProperty",        ConsoleCommands.GetProperty,        0, 1);
-                ConsoleCommands.RegisterCommand("PROPSET",     "LightSniper.SetProperty",        ConsoleCommands.SetProperty,        1   );
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.InstallPack",        ConsoleCommands.InstallPack,        1,  1, "Extract the specified built-in pack");
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.EnablePack",         ConsoleCommands.EnablePack,         1,  1, "Enable the specified pack");
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.DisablePack",        ConsoleCommands.DisablePack,        1,  1, "Disable the specified pack");
+                ConsoleCommands.RegisterCommand("BG",          "LightSniper.BeginGroup",         ConsoleCommands.BeginGroup,         1,  1, "Begin editing a group of lights/meshes/decorations");
+                ConsoleCommands.RegisterCommand("EG",          "LightSniper.EndGroup",           ConsoleCommands.EndGroup,           0,  0, "End editing the current group (resets group to \"user\")");
+                ConsoleCommands.RegisterCommand("LG",          "LightSniper.ListGroups",         ConsoleCommands.ListGroups,         0,  2, "List all groups in the current region or the specified region");
+                ConsoleCommands.RegisterCommand("LON",         "LightSniper.EnableGroup",        ConsoleCommands.EnableGroup,        0,  2, "Enable all groups, the specified group, or a specific group in a region");
+                ConsoleCommands.RegisterCommand("LOFF",        "LightSniper.DisableGroup",       ConsoleCommands.DisableGroup,       0,  2, "Disable all groups, the specified group, or a specific group in a region");
+                ConsoleCommands.RegisterCommand("PRIO",        "LightSniper.GroupPriority",      ConsoleCommands.GroupPriority,      0,  3, "Set the priority of the specified group");
+                ConsoleCommands.RegisterCommand("RGN",         "LightSniper.SetRegion",          ConsoleCommands.SetRegion,          0,  1, "Set the override region to use for overlapping regions");
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.SaveTemplate",       ConsoleCommands.SaveTemplate,       1, -1, "Save the current <USER DEFINED> template as a named template");
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.ReloadTemplates",    ConsoleCommands.ReloadTemplates,    0,  0, "Reload templates from JSON files (takes effect when radio is next active)");
+                ConsoleCommands.RegisterCommand(null,          "LightSniper.CleanUpOnExit",      ConsoleCommands.CleanUpOnExit,      0,  1, "Removes empty region folders when exiting the game, useful before zipping a pack");
+                ConsoleCommands.RegisterCommand("PROPGET",     "LightSniper.GetProperty",        ConsoleCommands.GetProperty,        0,  1, "Get the specified global property");
+                ConsoleCommands.RegisterCommand("PROPSET",     "LightSniper.SetProperty",        ConsoleCommands.SetProperty,        1, -1, "Set the specified global property to the specified value");
 
                 // hidden from autocomplete, dev only
-                ConsoleCommands.RegisterCommand("MARKERS",     "LightSniper.ToggleMarkers",      ConsoleCommands.ToggleMarkers,      0, 0, false);
-                ConsoleCommands.RegisterCommand("DBGTOGGLE",   "LightSniper.ToggleDebugOverlay", ConsoleCommands.ToggleDebugOverlay, 0, 0, false);
-                ConsoleCommands.RegisterCommand("DBGLEVEL",    "LightSniper.SetDebugLevel",      ConsoleCommands.SetDebugLevel,      1,-1, false);
-                ConsoleCommands.RegisterCommand("MARKORPHANS", "LightSniper.MarkOrphans",        ConsoleCommands.MarkOrphans,        0, 0, false);
-                ConsoleCommands.RegisterCommand("KILLORPHANS", "LightSniper.KillOrphans",        ConsoleCommands.KillOrphans,        0, 0, false);
-                ConsoleCommands.RegisterCommand("FREEORPHANS", "LightSniper.FreeOrphans",        ConsoleCommands.FreeOrphans,        0, 0, false);
+                ConsoleCommands.RegisterCommand("MARKERS",     "LightSniper.ToggleMarkers",      ConsoleCommands.ToggleMarkers,      0,  0);
+                ConsoleCommands.RegisterCommand("DBGTOGGLE",   "LightSniper.ToggleDebugOverlay", ConsoleCommands.ToggleDebugOverlay, 0,  0);
+                ConsoleCommands.RegisterCommand("DBGLEVEL",    "LightSniper.SetDebugLevel",      ConsoleCommands.SetDebugLevel,      1, -1);
+                ConsoleCommands.RegisterCommand("MARKORPHANS", "LightSniper.MarkOrphans",        ConsoleCommands.MarkOrphans,        0,  0);
+                ConsoleCommands.RegisterCommand("KILLORPHANS", "LightSniper.KillOrphans",        ConsoleCommands.KillOrphans,        0,  0);
+                ConsoleCommands.RegisterCommand("FREEORPHANS", "LightSniper.FreeOrphans",        ConsoleCommands.FreeOrphans,        0,  0);
 
                 ConsoleCommands.registered = true;
             }
@@ -89,14 +91,14 @@ namespace DVLightSniper.Mod
             }
         }
 
-        private static void RegisterCommand(string shortName, string fqName, Action<CommandArg[]> proc, int minArgs = 0, int maxArgs = -1, bool registerAutocomplete = true, string help = "", string hint = null)
+        private static void RegisterCommand(string shortName, string fqName, Action<CommandArg[]> proc, int minArgs = 0, int maxArgs = -1, string help = null, string hint = null)
         {
             if (shortName != null)
             {
-                Terminal.Shell.AddCommand(shortName, proc, minArgs, maxArgs, help, hint);
+                Terminal.Shell.AddCommand(shortName, proc, minArgs, maxArgs, null, hint, true);
             }
-            Terminal.Shell.AddCommand(fqName, proc, minArgs, maxArgs, help, hint);
-            if (registerAutocomplete)
+            Terminal.Shell.AddCommand(fqName, proc, minArgs, maxArgs, help ?? "", hint, help == null);
+            if (help != null)
             {
                 Terminal.Autocomplete.Register(fqName);
             }
@@ -350,7 +352,7 @@ namespace DVLightSniper.Mod
                 return;
             }
 
-            string value = args.Length > 1 ? ConsoleCommands.ConcatenateArgs(args, 1) : null;
+            string value = args.Length > 1 ? ConcatenateArgs(args, 1) : null;
             GlobalProperties.Instance.Set(key, value);
             Terminal.Log(TerminalLogType.Message, "{0}=<color=#{2}>{1}</color>", key, value ?? "null", value == null ? "FF0000" : "00FF00");
         }

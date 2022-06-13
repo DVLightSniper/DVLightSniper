@@ -29,7 +29,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using DVLightSniper.Mod.GameObjects.Spawners;
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 
 using JetBrains.Annotations;
@@ -85,6 +85,7 @@ namespace DVLightSniper.Mod.Components
                 {
                     this.sources.Add(meshRenderer);
                     meshRenderer.enabled = false;
+                    this.sourceOn = false;
                 }
             }
         }

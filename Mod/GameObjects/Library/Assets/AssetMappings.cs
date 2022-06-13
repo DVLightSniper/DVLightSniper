@@ -35,7 +35,7 @@ using DVLightSniper.Mod.Storage;
 
 using UnityEngine;
 
-namespace DVLightSniper.Mod.GameObjects.Library
+namespace DVLightSniper.Mod.GameObjects.Library.Assets
 {
     /// <summary>
     /// Mappings of asset bundle names as they appear in the JSON files, to actual files on disk.

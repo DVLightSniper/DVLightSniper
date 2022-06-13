@@ -75,7 +75,7 @@ namespace DVLightSniper.Mod.GameObjects
 
         private static readonly DutyCycle[] DUTY_CYCLE_PRESETS =
         {
-            DutyCycle.ALWAYS, new DutyCycle.DuskTillDawn(), new DutyCycle.Flashing(1.0F), new DutyCycle.Flashing(2.0F), new DutyCycle.Random(), null
+            DutyCycle.ALWAYS, new DutyCycle.DuskTillDawn(), new DutyCycle.Flashing(1.0F), new DutyCycle.Flashing(2.0F), new DutyCycle.Random(false), null
         };
 
         internal event Action<Designer> OnExit;

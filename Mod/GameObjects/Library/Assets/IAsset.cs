@@ -28,44 +28,49 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using DVLightSniper.Mod.GameObjects.Library;
+using Object = UnityEngine.Object;
 
-using UnityEngine;
-
-using Debug = System.Diagnostics.Debug;
-using TextureHandle = DVLightSniper.Mod.GameObjects.Library.AssetLoader.TextureHandle;
-
-namespace DVLightSniper.Mod.GameObjects.Spawners.Properties
+namespace DVLightSniper.Mod.GameObjects.Library.Assets
 {
     /// <summary>
-    /// A tracking property for an texture
+    /// Base interface for assets
     /// </summary>
-    internal class TextureProperty : TrackingProperty<TextureHandle>
+    public interface IAsset<out TAsset> where TAsset : Object
     {
         /// <summary>
-        /// Asset loader to attempt to load assets from
+        /// Asset bundle name
         /// </summary>
-        private readonly AssetLoader assetLoader;
+        string AssetBundleName { get; }
 
-        private readonly int textureSize;
+        /// <summary>
+        /// Asset name
+        /// </summary>
+        string AssetName { get; }
 
-        internal TextureProperty(string key, string defaultPropertyValue, TextureHandle defaultValue, AssetLoader assetLoader, int textureSize = 256)
-            : this(GlobalProperties.Instance, key, defaultPropertyValue, defaultValue, assetLoader, textureSize)
-        {
-        }
+        /// <summary>
+        /// The loaded asset, if available
+        /// </summary>
+        TAsset Asset { get; }
 
-        internal TextureProperty(IProperties properties, string key, string defaultPropertyValue, TextureHandle defaultValue, AssetLoader assetLoader, int textureSize = 256)
-            : base(properties, key, defaultPropertyValue, defaultValue)
-        {
-            this.assetLoader = assetLoader;
-            this.textureSize = textureSize;
-            this.Update();
-        }
+        /// <summary>
+        /// Type of asset
+        /// </summary>
+        AssetType Type { get; }
 
-        protected override TextureHandle ComputeValue(string propertyValue)
-        {
-            Debug.WriteLine("TextureProperty: Loading asset <{0}.png> from <{1}>", propertyValue, this.assetLoader.Dir);
-            return this.assetLoader.GetTexture(propertyValue + ".png", this.textureSize) ?? this.defaultValue;
-        }
+        /// <summary>
+        /// Flag which indicates the file was changed on disk, used to trigger a reload of the
+        /// sprite the next time it's updated
+        /// </summary>
+        bool Changed { get; }
+
+        /// <summary>
+        /// True if the file was loaded successfully
+        /// </summary>
+        bool Valid { get; }
+
+        /// <summary>
+        /// Reloads the texture resource
+        /// </summary>
+        void Reload();
     }
 }

@@ -45,6 +45,7 @@ using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
 
 using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners;
 using DVLightSniper.Mod.GameObjects.Spawners.Packs;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
@@ -615,6 +616,11 @@ namespace DVLightSniper.Mod.GameObjects
         internal static int CurrentSecond { get; private set; }
 
         /// <summary>
+        /// True if the current time is within the dusk-till-dawn period defined in the settings
+        /// </summary>
+        internal static bool IsNightTime { get; private set; }
+
+        /// <summary>
         /// Debugging option which is enabled via -debug-toggle-caps which uses CAPS LOCK to toggle
         /// culling for all spawners, mainly just for taking before/after screenshots
         /// </summary>
@@ -877,7 +883,7 @@ namespace DVLightSniper.Mod.GameObjects
 
             SpawnerController.CurrentTime = TimeSource.GetCurrentTime();
             SpawnerController.CurrentSecond = (((SpawnerController.CurrentTime.Hour * 60) + SpawnerController.CurrentTime.Minute) * 60) + SpawnerController.CurrentTime.Second;
-
+            SpawnerController.IsNightTime = LightSniper.Settings.IsNightTime(SpawnerController.CurrentSecond);
 
             foreach (Region region in this.regions.Values)
             {

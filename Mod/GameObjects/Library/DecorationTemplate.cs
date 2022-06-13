@@ -30,6 +30,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using DVLightSniper.Mod.Components;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.Util;
 
 using Newtonsoft.Json;

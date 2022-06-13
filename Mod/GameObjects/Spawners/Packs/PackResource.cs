@@ -67,5 +67,10 @@ namespace DVLightSniper.Mod.GameObjects.Spawners.Packs
             this.LastWriteTime = lastWriteTime;
             this.Resource = resource;
         }
+
+        public override string ToString()
+        {
+            return this.Pack.Path + "!" + Name;
+        }
     }
 }

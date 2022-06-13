@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 using DVLightSniper.Mod.Components;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 using DVLightSniper.Mod.Util;

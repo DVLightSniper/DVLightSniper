@@ -33,7 +33,7 @@ using System.Runtime.Serialization;
 using DV;
 
 using DVLightSniper.Mod.Components;
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
 using DVLightSniper.Mod.GameObjects.Spawners.Properties;
 
 using Debug = System.Diagnostics.Debug;

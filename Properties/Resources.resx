@@ -118,33 +118,66 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+
   <data name="corona_amber01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_amber01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="corona_amber01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_amber01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="corona_blue01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_blue01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="corona_blue01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_blue01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  
   <data name="corona_green01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_green01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="corona_green01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_green01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="corona_orange01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_orange01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="corona_orange01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_orange01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  
   <data name="corona_red01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_red01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="corona_red01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_red01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="corona_white01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_white01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="corona_white01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_white01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  
   <data name="corona_flare01.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_flare01.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="corona_flare01.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_flare01.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="corona_flare02.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_flare02.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="corona_flare02.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_flare02.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  
   <data name="corona_flare03.png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\corona_flare03.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="corona_flare03.png.meta" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\resources\corona_flare03.png.meta;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  
   <data name="meshes_lampposts_1.0.assetbundle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\resources\meshes_lampposts_1.0.assetbundle;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

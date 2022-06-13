@@ -36,7 +36,8 @@ using System.Threading.Tasks;
 using DV;
 
 using DVLightSniper.Mod.GameObjects;
-using DVLightSniper.Mod.GameObjects.Library;
+using DVLightSniper.Mod.GameObjects.Library.Assets;
+using DVLightSniper.Mod.Storage;
 using DVLightSniper.Mod.Util;
 
 using UnityEngine;
@@ -59,7 +60,7 @@ namespace DVLightSniper.Mod
     {
         public const int VERSION_MAJOR = 0;
         public const int VERSION_MINOR = 1;
-        public const int VERSION_REVISION = 0;
+        public const int VERSION_REVISION = 3;
 
         public const int DV_BUILD = 92;
 
@@ -360,10 +361,23 @@ namespace DVLightSniper.Mod
 
             PlayerManager.PlayerChanged += this.OnPlayerChanged;
 
+            // Create resources dir which stores configuration and misc resource files
             Directory.CreateDirectory(System.IO.Path.Combine(LightSniper.Path, "Resources"));
-            AssetLoader.Meshes.ExtractResources();
+
+            // Extract mesh asset bundles
+            AssetLoader.Meshes.ExtractBundles("meshes_");
+
+            // Extract corona textures
+            AssetLoader.Coronas.Meta = new MetaStorage(new [] { ("textureSize", "256") });
+            AssetLoader.Coronas.Matcher = (key) => key.StartsWith("corona_") && key.EndsWith(".png");
             AssetLoader.Coronas.ExtractResources();
-            AssetLoader.Coronas.ListFiles();
+
+            // Wire up fallback and overrides
+            AssetLoader.Meshes.OverrideLoader = AssetLoader.User;
+            AssetLoader.Meshes.FallbackLoader = AssetLoader.User;
+
+            // Create dirs for different asset types under user asset dir
+            AssetType.CreateDirectories(AssetLoader.User.Dir);
 
             this.UpdateRadioConnection();
         }

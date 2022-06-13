@@ -34,6 +34,7 @@ using Extensions.SystemRandom;
 using JetBrains.Annotations;
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 using Debug = System.Diagnostics.Debug;
 using Object = UnityEngine.Object;
@@ -85,6 +86,7 @@ namespace DVLightSniper.Mod.Components
             {
                 if (!this.extraMaterials.ContainsKey(key))
                 {
+                    sourceMaterial.renderQueue = (int)RenderQueue.GeometryLast;
                     this.extraMaterials[key] = sourceMaterial;
                     this.dirty = true;
                 }
