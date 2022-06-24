@@ -58,10 +58,6 @@ namespace DVLightSniper.Mod
     /// </summary>
     public class LightSniper
     {
-        public const int VERSION_MAJOR = 0;
-        public const int VERSION_MINOR = 1;
-        public const int VERSION_REVISION = 3;
-
         public const int DV_BUILD = 92;
 
         /// <summary>

@@ -273,9 +273,9 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_decoration_lights_1_1_assetbundle {
+        internal static byte[] meshes_decoration_lights_1_2_assetbundle {
             get {
-                object obj = ResourceManager.GetObject("meshes_decoration_lights_1.1.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("meshes_decoration_lights_1.2.assetbundle", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -283,9 +283,9 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_lampposts_1_0_assetbundle {
+        internal static byte[] meshes_lampposts_1_1_assetbundle {
             get {
-                object obj = ResourceManager.GetObject("meshes_lampposts_1.0.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("meshes_lampposts_1.1.assetbundle", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -293,9 +293,9 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_levelcrossings_1_1_assetbundle {
+        internal static byte[] meshes_levelcrossings_1_2_assetbundle {
             get {
-                object obj = ResourceManager.GetObject("meshes_levelcrossings_1.1.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("meshes_levelcrossings_1.2.assetbundle", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -303,9 +303,9 @@ namespace DVLightSniper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] meshes_signs_1_0_assetbundle {
+        internal static byte[] meshes_signs_1_1_assetbundle {
             get {
-                object obj = ResourceManager.GetObject("meshes_signs_1.0.assetbundle", resourceCulture);
+                object obj = ResourceManager.GetObject("meshes_signs_1.1.assetbundle", resourceCulture);
                 return ((byte[])(obj));
             }
         }

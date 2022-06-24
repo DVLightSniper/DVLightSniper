@@ -278,18 +278,18 @@ namespace DVLightSniper.Mod
         {
             try
             {
-                using (var cryptoProvider = new SHA1CryptoServiceProvider())
+                using (SHA1CryptoServiceProvider cryptoProvider = new SHA1CryptoServiceProvider())
                 {
-                    using (var fs = new FileStream(file, FileMode.Open))
+                    using (FileStream fs = new FileStream(file, FileMode.Open))
                     {
                         byte[] sha1 = cryptoProvider.ComputeHash(fs);
-                        return BitConverter.ToString(sha1);
+                        return BitConverter.ToString(sha1).Replace("-", "");
                     }
                 }
             }
             catch (Exception)
             {
-                return "";
+                return "0000000000000000000000000000000000000000";
             }
         }
 

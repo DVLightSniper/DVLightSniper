@@ -73,14 +73,20 @@ namespace DVLightSniper.Mod.GameObjects.Library.Assets
             int oldVersion = this.version;
 
             // Version 1 mappings
-            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.0.assetbundle", "68-D9-83-6A-9A-21-D6-AE-F0-CC-D7-0F-09-D1-85-AD-CF-BF-19-0E");
-            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_lampposts.assetbundle",         "meshes_lampposts_1.0.assetbundle",         "20-03-19-45-FA-41-12-1B-43-29-BC-77-1A-DC-BE-B9-5A-4A-AD-08");
-            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.0.assetbundle",    "4D-16-ED-CA-80-CE-BD-86-2F-3E-48-86-12-7E-C0-1E-1C-A2-CB-EF");
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.0.assetbundle", "68D9836A9A21D6AEF0CCD70F09D185ADCFBF190E");
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_lampposts.assetbundle",         "meshes_lampposts_1.0.assetbundle",         "20031945FA41121B4329BC771ADCBEB95A4AAD08");
+            dirty |= this.InternalMapping(oldVersion, 1, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.0.assetbundle",    "4D16EDCA80CEBD862F3E4886127EC01E1CA2CBEF");
 
             // Version 2 mappings
-            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.1.assetbundle", null);
-            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.1.assetbundle",    null);
-            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_signs.assetbundle",             "meshes_signs_1.0.assetbundle",             null);
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.1.assetbundle", "49A706BE0389BCECF08013E26A798B1CF1781C93");
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.1.assetbundle",    "19B8820FB02AAF3EAF08D3F2DC5D328D7A697473");
+            dirty |= this.InternalMapping(oldVersion, 2, AssetLoader.Meshes, "meshes_signs.assetbundle",             "meshes_signs_1.0.assetbundle",             "0D879A923160220C9256584F6C47AA0C1EB564C2");
+
+            // Version 3 mappings
+            dirty |= this.InternalMapping(oldVersion, 3, AssetLoader.Meshes, "meshes_decoration_lights.assetbundle", "meshes_decoration_lights_1.2.assetbundle", "149D10216E225481E4A322DBE54A094001A00FE8");
+            dirty |= this.InternalMapping(oldVersion, 3, AssetLoader.Meshes, "meshes_lampposts.assetbundle",         "meshes_lampposts_1.1.assetbundle",         "89A01F1C0657EF35ECB7DA4963A6FB75408A87C7");
+            dirty |= this.InternalMapping(oldVersion, 3, AssetLoader.Meshes, "meshes_levelcrossings.assetbundle",    "meshes_levelcrossings_1.2.assetbundle",    "B440FE50A990A63EDD81882E1026D8FBDADF4EF0");
+            dirty |= this.InternalMapping(oldVersion, 3, AssetLoader.Meshes, "meshes_signs.assetbundle",             "meshes_signs_1.1.assetbundle",             "5A8B289922625423B35C7F5DEEADCFB39B056DC3");
 
             if (dirty)
             {
